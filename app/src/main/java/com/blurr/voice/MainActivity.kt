@@ -35,8 +35,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.lifecycleScope
+import com.android.billingclient.api.*
 import com.blurr.voice.services.EnhancedWakeWordService
 import com.blurr.voice.utilities.FreemiumManager
+import com.blurr.voice.utilities.Logger
 import com.blurr.voice.utilities.OnboardingManager
 import com.blurr.voice.utilities.PermissionManager
 import com.blurr.voice.utilities.UserIdManager
@@ -49,17 +51,15 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
-import com.revenuecat.purchases.Purchases
-import com.revenuecat.purchases.awaitCustomerInfo
-import com.revenuecat.purchases.ui.revenuecatui.ExperimentalPreviewRevenueCatUIPurchasesAPI
-import com.revenuecat.purchases.ui.revenuecatui.activity.PaywallActivityLauncher
-import com.revenuecat.purchases.ui.revenuecatui.activity.PaywallResult
-import com.revenuecat.purchases.ui.revenuecatui.activity.PaywallResultHandler
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.tasks.await
 import java.io.File
 
-@OptIn(ExperimentalPreviewRevenueCatUIPurchasesAPI::class)
-class MainActivity : AppCompatActivity(), PaywallResultHandler {
+class MainActivity : AppCompatActivity() {
 
     private lateinit var handler: Handler
     private lateinit var managePermissionsButton: TextView
@@ -76,19 +76,33 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
     private lateinit var increaseLimitsLink: TextView
     private lateinit var onboardingManager: OnboardingManager
     private lateinit var requestRoleLauncher: ActivityResultLauncher<Intent>
+    private lateinit var billingStatusTextView: TextView
+    private lateinit var loadingOverlay: View
 
-    private lateinit var paywallActivityLauncher: PaywallActivityLauncher
     private lateinit var root: View
     companion object {
         const val ACTION_WAKE_WORD_FAILED = "com.blurr.voice.WAKE_WORD_FAILED"
+        const val ACTION_PURCHASE_UPDATED = "com.blurr.voice.PURCHASE_UPDATED"
     }
+    
     private val wakeWordFailureReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == ACTION_WAKE_WORD_FAILED) {
-                Log.d("MainActivity", "Received wake word failure broadcast.")
+                Logger.d("MainActivity", "Received wake word failure broadcast.")
                 // The service stops itself, but we should refresh the UI state
                 updateUI()
                 showWakeWordFailureDialog()
+            }
+        }
+    }
+    
+    private val purchaseUpdateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == ACTION_PURCHASE_UPDATED) {
+                Logger.d("MainActivity", "Received purchase update broadcast.")
+                // Refresh billing status
+                showLoading(true)
+                performBillingCheck()
             }
         }
     }
@@ -102,16 +116,12 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
             }
         }
 
-    override fun onActivityResult(result: PaywallResult) {}
 
-    private fun launchPaywallActivity() {
-        paywallActivityLauncher.launchIfNeeded(requiredEntitlementIdentifier = "pro")
-    }
+
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        paywallActivityLauncher = PaywallActivityLauncher(this, this)
 
         auth = Firebase.auth
         val currentUser = auth.currentUser
@@ -127,7 +137,7 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
         }
         onboardingManager = OnboardingManager(this)
         if (!onboardingManager.isOnboardingCompleted()) {
-            Log.d("MainActivity", "User is logged in but onboarding not completed. Relaunching permissions stepper.")
+            Logger.d("MainActivity", "User is logged in but onboarding not completed. Relaunching permissions stepper.")
             startActivity(Intent(this, OnboardingPermissionsActivity::class.java))
             finish()
             return
@@ -155,7 +165,7 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
             } else {
                 // Explain and offer Settings
                 Toast.makeText(this, "Couldn’t become default assistant. Opening settings…", Toast.LENGTH_SHORT).show()
-                Log.w("MainActivity", "Role request canceled or app not eligible.\n${explainAssistantEligibility()}")
+                Logger.w("MainActivity", "Role request canceled or app not eligible.\n${explainAssistantEligibility()}")
                 openAssistantPickerSettings()
             }
             showAssistantStatus(true)
@@ -190,6 +200,8 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
 
         saveKeyButton = findViewById(R.id.saveKeyButton)
         tasksRemainingTextView = findViewById(R.id.tasks_remaining_textview)
+        billingStatusTextView = findViewById(R.id.billing_status_textview)
+        loadingOverlay = findViewById(R.id.loading_overlay)
         freemiumManager = FreemiumManager()
         // Initialize managers
         wakeWordManager = WakeWordManager(this, requestPermissionLauncher)
@@ -200,6 +212,11 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
         setupClickListeners()
         setupSettingsButton()
         setupGradientText()
+        
+        // Show loading and perform initial billing check
+        showLoading(true)
+        performBillingCheck()
+        
         lifecycleScope.launch {
             val videoUrl = "https://storage.googleapis.com/blurr-app-assets/wake_word_demo.mp4"
             VideoAssetManager.getVideoFile(this@MainActivity, videoUrl)
@@ -228,7 +245,7 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
         val held = rm?.isRoleHeld(RoleManager.ROLE_ASSISTANT) == true
         val msg = if (held) "This app is the default assistant." else "This app is NOT the default assistant."
         if (toast) Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-        Log.d("MainActivity", msg)
+        Logger.d("MainActivity", msg)
     }
 
     private fun explainAssistantEligibility(): String {
@@ -257,7 +274,12 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
         if (auth.currentUser == null) {
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
+            return
         }
+        
+        // Show loading and perform billing check when starting
+        showLoading(true)
+        performBillingCheck()
     }
 //    private fun signOut() {
 //        auth.signOut()
@@ -272,7 +294,7 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
 //    }
     private fun handleIntent(intent: Intent?) {
         if (intent?.action == "com.blurr.voice.WAKE_UP_PANDA") {
-            Log.d("MainActivity", "Wake up Panda shortcut activated!")
+            Logger.d("MainActivity", "Wake up Panda shortcut activated!")
             startConversationalAgent()
         }
     }
@@ -283,7 +305,7 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
             ContextCompat.startForegroundService(this, serviceIntent)
             Toast.makeText(this, "Panda is waking up...", Toast.LENGTH_SHORT).show()
         } else {
-            Log.d("MainActivity", "ConversationalAgentService is already running.")
+            Logger.d("MainActivity", "ConversationalAgentService is already running.")
             Toast.makeText(this, "Panda is already awake!", Toast.LENGTH_SHORT).show()
         }
     }
@@ -305,7 +327,7 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
 //            startActivity(Intent(this, MemoriesActivity::class.java))
 //        }
         findViewById<TextView>(R.id.goProButton).setOnClickListener {
-            launchPaywallActivity()
+            startActivity(Intent(this, ProPurchaseActivity::class.java))
         }
         saveKeyButton.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -374,21 +396,37 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onResume() {
         super.onResume()
-        updateTaskCounter()
-
+        
+        // Show loading and perform billing check
+        showLoading(true)
+        performBillingCheck()
+        displayDeveloperMessage()
         updateUI()
-        val filter = IntentFilter(ACTION_WAKE_WORD_FAILED)
+        
+        // Register broadcast receivers
+        val wakeWordFilter = IntentFilter(ACTION_WAKE_WORD_FAILED)
+        val purchaseFilter = IntentFilter(ACTION_PURCHASE_UPDATED)
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(wakeWordFailureReceiver, filter, RECEIVER_NOT_EXPORTED)
+            registerReceiver(wakeWordFailureReceiver, wakeWordFilter, RECEIVER_NOT_EXPORTED)
+            registerReceiver(purchaseUpdateReceiver, purchaseFilter, RECEIVER_NOT_EXPORTED)
         } else {
-            registerReceiver(wakeWordFailureReceiver, filter)
+            registerReceiver(wakeWordFailureReceiver, wakeWordFilter)
+            registerReceiver(purchaseUpdateReceiver, purchaseFilter)
         }
     }
     override fun onPause() {
         super.onPause()
-        // Unregister the BroadcastReceiver to avoid leaks
-        unregisterReceiver(wakeWordFailureReceiver)
+        // Unregister the BroadcastReceivers to avoid leaks
+        try {
+            unregisterReceiver(wakeWordFailureReceiver)
+            unregisterReceiver(purchaseUpdateReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receivers might not be registered, ignore
+            Logger.d("MainActivity", "Receivers were not registered")
+        }
     }
+
     private fun showDisclaimerDialog() {
         val dialog = AlertDialog.Builder(this)
             .setTitle("Disclaimer")
@@ -434,7 +472,7 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
                 }
             } else {
                 // If file doesn't exist (e.g., download failed), hide the video player
-                Log.e("MainActivity", "Video file not found, hiding video container.")
+                Logger.e("MainActivity", "Video file not found, hiding video container.")
                 videoContainer.visibility = View.GONE
             }
         }
@@ -479,6 +517,38 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
         }
     }
 
+    private fun updateBillingStatus() {
+        lifecycleScope.launch {
+            try {
+                val isSubscribed = freemiumManager.isUserSubscribed()
+                val billingClientReady = MyApplication.isBillingClientReady.value
+                
+                when {
+                    !billingClientReady -> {
+                        billingStatusTextView.text = "Billing: Connecting..."
+                        billingStatusTextView.setTextColor(Color.parseColor("#FF9800")) // Orange
+                        billingStatusTextView.visibility = View.VISIBLE
+                    }
+                    isSubscribed -> {
+                        billingStatusTextView.text = "✓ Pro Subscription Active"
+                        billingStatusTextView.setTextColor(Color.parseColor("#4CAF50")) // Green
+                        billingStatusTextView.visibility = View.VISIBLE
+                    }
+                    else -> {
+                        billingStatusTextView.text = "Free Plan"
+                        billingStatusTextView.setTextColor(Color.parseColor("#757575")) // Gray
+                        billingStatusTextView.visibility = View.VISIBLE
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.e("MainActivity", "Error updating billing status", e)
+                billingStatusTextView.text = "Billing: Error"
+                billingStatusTextView.setTextColor(Color.parseColor("#F44336")) // Red
+                billingStatusTextView.visibility = View.VISIBLE
+            }
+        }
+    }
+
     @SuppressLint("SetTextI18n")
     private fun updateUI() {
         val allPermissionsGranted = permissionManager.areAllPermissionsGranted()
@@ -507,6 +577,178 @@ class MainActivity : AppCompatActivity(), PaywallResultHandler {
     private fun updateDefaultAssistantButtonVisibility() {
         val btn = findViewById<TextView>(R.id.btn_set_default_assistant)
         btn.visibility = if (isThisAppDefaultAssistant()) View.GONE else View.VISIBLE
+    }
+
+    private fun showLoading(show: Boolean) {
+        loadingOverlay.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
+    private fun performBillingCheck() {
+        lifecycleScope.launch {
+            try {
+                // Wait for billing client to be ready
+                waitForBillingClientReady()
+                
+                // Query purchases and handle them
+                queryAndHandlePurchases()
+                
+                // Update UI with current status
+                updateTaskCounter()
+                updateBillingStatus()
+                
+            } catch (e: Exception) {
+                Logger.e("MainActivity", "Error during billing check", e)
+                updateTaskCounter()
+                updateBillingStatus()
+            } finally {
+                showLoading(false)
+            }
+        }
+    }
+
+    private suspend fun waitForBillingClientReady() {
+        return withContext(Dispatchers.IO) {
+            var attempts = 0
+            val maxAttempts = 10
+            
+            while (!MyApplication.isBillingClientReady.value && attempts < maxAttempts) {
+                kotlinx.coroutines.delay(500)
+                attempts++
+            }
+            
+            if (!MyApplication.isBillingClientReady.value) {
+                Logger.w("MainActivity", "Billing client not ready after waiting")
+            }
+        }
+    }
+
+    private suspend fun queryAndHandlePurchases() {
+        return withContext(Dispatchers.IO) {
+            if (!MyApplication.isBillingClientReady.value) {
+                Logger.e("MainActivity", "queryPurchases: BillingClient is not ready")
+                //tvPermissionStatus.text = "queryPurchases: BillingClient is not ready"
+
+                return@withContext
+            }
+
+            try {
+                val params = QueryPurchasesParams.newBuilder()
+                    .setProductType(BillingClient.ProductType.SUBS)
+                    .build()
+                
+                Logger.d("MainActivity", "queryPurchases: BillingClient is ready")
+                //tvPermissionStatus.text = "queryPurchases: BillingClient is ready"
+
+                val purchasesResult = MyApplication.billingClient.queryPurchasesAsync(params)
+                val billingResult = purchasesResult.billingResult
+                
+                Logger.d("MainActivity", "queryPurchases: Got billing result: ${billingResult.responseCode}")
+                //tvPermissionStatus.text = "queryPurchases: Got billing result: ${billingResult.responseCode}"
+
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    Logger.d("MainActivity", "queryPurchases: Found ${purchasesResult.purchasesList.size} purchases")
+                    //tvPermissionStatus.text = "queryPurchases: Found ${purchasesResult.purchasesList.size} purchases"
+
+                    purchasesResult.purchasesList.forEach { purchase ->
+                        when (purchase.purchaseState) {
+                            Purchase.PurchaseState.PURCHASED -> {
+                                Logger.d("MainActivity", "Found purchased item: ${purchase.products}")
+                                //tvPermissionStatus.text = "Found purchased item: ${purchase.products}"
+
+                                handlePurchase(purchase)
+                            }
+                            Purchase.PurchaseState.PENDING -> {
+                                Logger.d("MainActivity", "Purchase is pending")
+                                //tvPermissionStatus.text = "Purchase is pending"
+                            }
+                            else -> {
+                                Logger.d("MainActivity", "Purchase is not in a valid state: ${purchase.purchaseState}")
+                                //tvPermissionStatus.text = "Purchase is not in a valid state: ${purchase.purchaseState}"
+                            }
+                        }
+                    }
+                } else {
+                    Logger.e("MainActivity", "Failed to query purchases: ${billingResult.debugMessage}")
+                }
+            } catch (e: Exception) {
+                Logger.e("MainActivity", "Exception during purchase query", e)
+            }
+        }
+    }
+
+    private suspend fun handlePurchase(purchase: Purchase) {
+        return withContext(Dispatchers.IO) {
+            try {
+                if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                    if (!purchase.isAcknowledged) {
+                        val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
+                            .setPurchaseToken(purchase.purchaseToken)
+                            .build()
+                        
+                        MyApplication.billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
+                            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                                Logger.d("MainActivity", "Purchase acknowledged: ${purchase.orderId}")
+                                //tvPermissionStatus.text = "Purchase acknowledged: ${purchase.orderId}"
+
+                                lifecycleScope.launch {
+                                    updateUserToPro()
+                                }
+                            } else {
+                                Logger.e("MainActivity", "Failed to acknowledge purchase: ${billingResult.debugMessage}")
+                            }
+                        }
+                    } else {
+                        // Purchase already acknowledged, ensure backend is updated.
+                        updateUserToPro()
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.e("MainActivity", "Error handling purchase", e)
+            }
+        }
+    }
+
+
+    private suspend fun updateUserToPro() { // The 'email' parameter is no longer needed
+        // Get the current user's UID directly from Firebase Auth.
+        val uid = Firebase.auth.currentUser?.uid
+
+        // If the user isn't logged in, we can't proceed.
+        if (uid == null) {
+            Logger.e("MainActivity", "Cannot update user to pro: user is not authenticated.")
+            // Switch to the Main thread to safely update the UI.
+            withContext(Dispatchers.Main) {
+                //tvPermissionStatus.text = "Error: You are not signed in."
+            }
+            return // Exit the function
+        }
+
+        // Perform the database operation on a background thread.
+        withContext(Dispatchers.IO) {
+            val db = Firebase.firestore
+            try {
+                // Create a direct reference to the user's document using their UID.
+                val userDocRef = db.collection("users").document(uid)
+
+                // Update the 'plan' field directly on that document.
+                userDocRef.update("plan", "pro").await()
+
+                Logger.d("MainActivity", "Successfully updated user $uid to 'pro' plan.")
+
+                // Switch back to the Main thread to safely update the UI.
+                withContext(Dispatchers.Main) {
+                    //tvPermissionStatus.text = "Successfully upgraded to Pro!"
+                }
+
+            } catch (e: Exception) {
+                Logger.e("MainActivity", "Error updating user to pro", e)
+
+                // Switch back to the Main thread to show an error message.
+                withContext(Dispatchers.Main) {
+                    ////tvPermissionStatus.text = "Error: Could not upgrade plan."
+                }
+            }
+        }
     }
 
 }

@@ -66,6 +66,7 @@ android {
         buildConfigField("String", "GCLOUD_GATEWAY_URL", "\"$googlecloudGatewayURL\"")
         buildConfigField("String", "GCLOUD_PROXY_URL", "\"$googlecloudProxyURL\"")
         buildConfigField("String", "GCLOUD_PROXY_URL_KEY", "\"$googlecloudProxyURLKey\"")
+        buildConfigField("boolean", "ENABLE_LOGGING", "true")
 
     }
 
