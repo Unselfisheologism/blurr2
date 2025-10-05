@@ -214,7 +214,7 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:padding="8dp"
-                android:text="Ran out of tasks? Request more."
+                android:text="Email the Developer with your problems!"
                 android:textColor="#5880F7"
                 android:textSize="14sp"
                 android:visibility="gone"

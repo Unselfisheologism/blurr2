@@ -365,8 +365,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         val recipient = "ayush0000ayush@gmail.com"
-        val subject = "Please increase limits"
-        val body = "Hello,\n\nPlease increase the task limits for my account: $userEmail\n\nThank you."
+        val subject = "I am facing issue in"
+        val body = "Hello,\n\nI am facing issue for my account: $userEmail\n <issue-content>.... \n\nThank you."
 
         val intent = Intent(Intent.ACTION_SENDTO).apply {
             data = Uri.parse("mailto:") // Only email apps should handle this
@@ -502,16 +502,11 @@ class MainActivity : AppCompatActivity() {
                 }
                 tasksRemainingTextView.visibility = View.VISIBLE
                 goProButton.visibility = View.VISIBLE
-
-                if (tasksLeft <= 10) {
-                    increaseLimitsLink.visibility = View.VISIBLE
-                } else {
-                    increaseLimitsLink.visibility = View.GONE
-                }
+                increaseLimitsLink.visibility = View.VISIBLE
 
             } else {
                 tasksRemainingTextView.visibility = View.GONE
-                increaseLimitsLink.visibility = View.GONE
+                increaseLimitsLink.visibility = View.VISIBLE
                 goProButton.visibility = View.VISIBLE
             }
         }
@@ -747,6 +742,35 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     ////tvPermissionStatus.text = "Error: Could not upgrade plan."
                 }
+            }
+        }
+    }
+
+    private fun displayDeveloperMessage() {
+        lifecycleScope.launch {
+            try {
+                val db = Firebase.firestore
+                val docRef = db.collection("settings").document("freemium")
+                
+                docRef.get().addOnSuccessListener { document ->
+                    if (document != null && document.exists()) {
+                        val message = document.getString("developerMessage")
+                        if (!message.isNullOrEmpty()) {
+                            val developerMessageTextView = findViewById<TextView>(R.id.developer_message_textview)
+                            developerMessageTextView.text = message
+                            developerMessageTextView.visibility = View.VISIBLE
+                            Logger.d("MainActivity", "Developer message displayed: $message")
+                        } else {
+                            Logger.d("MainActivity", "Developer message is empty")
+                        }
+                    } else {
+                        Logger.d("MainActivity", "Developer message document does not exist")
+                    }
+                }.addOnFailureListener { exception ->
+                    Logger.e("MainActivity", "Error fetching developer message", exception)
+                }
+            } catch (e: Exception) {
+                Logger.e("MainActivity", "Exception in displayDeveloperMessage", e)
             }
         }
     }
