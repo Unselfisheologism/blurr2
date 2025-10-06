@@ -24,6 +24,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
@@ -83,6 +84,8 @@ class LoginActivity : AppCompatActivity() {
                     }
                 } catch (e: ApiException) {
                     Log.w("LoginActivity", "Google sign in failed", e)
+                    FirebaseCrashlytics.getInstance().recordException(e)
+                    FirebaseCrashlytics.getInstance().log("Google Sign-In failed in credential extraction with ApiException")
                     Toast.makeText(this, "Google Sign-In failed.", Toast.LENGTH_SHORT).show()
                     progressBar.visibility = View.GONE
                     loadingText.visibility = View.GONE
@@ -103,23 +106,33 @@ class LoginActivity : AppCompatActivity() {
     private fun signIn() {
         progressBar.visibility = View.VISIBLE
         loadingText.visibility = View.VISIBLE
+        
+        Log.d("LoginActivity", "Starting Google Sign-In process")
+        Log.d("LoginActivity", "Using web client ID: ${getString(R.string.default_web_client_id)}")
+        
         // 4. Launch the sign-in flow
         oneTapClient.beginSignIn(signInRequest)
             .addOnSuccessListener(this) { result ->
                 try {
+                    Log.d("LoginActivity", "One Tap UI started successfully")
                     // The BeginSignInResult contains a PendingIntent
                     val intentSenderRequest = IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
                     // Launch the intent sender
                     googleSignInLauncher.launch(intentSenderRequest)
                 } catch (e: Exception) {
-                    Log.e("LoginActivity", "Couldn't start One Tap UI: ${e.localizedMessage}")
+                    Log.e("LoginActivity", "Couldn't start One Tap UI: ${e.localizedMessage}", e)
+                    FirebaseCrashlytics.getInstance().recordException(e)
+                    FirebaseCrashlytics.getInstance().log("Failed to start One Tap UI: ${e.localizedMessage}")
+                    Toast.makeText(this, "Sign-in UI failed to start: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                     progressBar.visibility = View.GONE
                     loadingText.visibility = View.GONE
                 }
             }
             .addOnFailureListener(this) { e ->
-                Log.e("LoginActivity", "Sign-in failed: ${e.localizedMessage}")
-                Toast.makeText(this, "Sign-in failed. Please try again.", Toast.LENGTH_SHORT).show()
+                Log.e("LoginActivity", "Sign-in failed: ${e.localizedMessage}", e)
+                FirebaseCrashlytics.getInstance().recordException(e)
+                FirebaseCrashlytics.getInstance().log("Google One Tap sign-in failed: ${e.localizedMessage}")
+                Toast.makeText(this, "Sign-in failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                 progressBar.visibility = View.GONE
                 loadingText.visibility = View.GONE
             }
@@ -176,6 +189,10 @@ class LoginActivity : AppCompatActivity() {
                     }
                 } else {
                     Log.w("LoginActivity", "signInWithCredential:failure", task.exception)
+                    task.exception?.let { exception ->
+                        FirebaseCrashlytics.getInstance().recordException(exception)
+                        FirebaseCrashlytics.getInstance().log("Firebase authentication failed: ${exception.localizedMessage}")
+                    }
                     Toast.makeText(this, "Authentication Failed.", Toast.LENGTH_SHORT).show()
                 }
             }
