@@ -16,11 +16,37 @@
         app:title="Your Triggers"
         app:titleTextColor="@color/white" />
 
+    <LinearLayout
+        android:id="@+id/trigger_options_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/toolbar"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <CheckBox
+            android:id="@+id/enable_triggers_checkbox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enable Triggers"
+            android:textColor="@color/white" />
+
+        <TextView
+            android:id="@+id/triggers_not_working_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Triggers not working for you?"
+            android:textColor="@color/button_blue"
+            android:layout_marginTop="8dp"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/triggersRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/toolbar"
+        android:layout_below="@id/trigger_options_container"
         android:padding="8dp"
         android:clipToPadding="false"
         tools:listitem="@layout/item_trigger" />
