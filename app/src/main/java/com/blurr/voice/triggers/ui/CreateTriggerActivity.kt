@@ -1,14 +1,5 @@
 package com.blurr.voice.triggers.ui
 
-import android.content.pm.PackageManager
-import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
-import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.CheckBox
-import android.widget.LinearLayout
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -54,6 +45,8 @@ class CreateTriggerActivity : AppCompatActivity() {
     private lateinit var selectAllAppsCheckbox: CheckBox
     private lateinit var notificationPermissionWarning: LinearLayout
     private lateinit var grantNotificationPermissionButton: Button
+    private lateinit var alarmPermissionWarning: LinearLayout
+    private lateinit var grantAlarmPermissionButton: Button
 
     private var selectedTriggerType = TriggerType.SCHEDULED_TIME
     private var selectedApps = listOf<AppInfo>()
@@ -78,6 +71,8 @@ class CreateTriggerActivity : AppCompatActivity() {
         dayOfWeekChipGroup = findViewById(R.id.dayOfWeekChipGroup)
         notificationPermissionWarning = findViewById(R.id.notificationPermissionWarning)
         grantNotificationPermissionButton = findViewById(R.id.grantNotificationPermissionButton)
+        alarmPermissionWarning = findViewById(R.id.alarmPermissionWarning)
+        grantAlarmPermissionButton = findViewById(R.id.grantAlarmPermissionButton)
 //        scrollView = findViewById(R.id.scrollView)
 
 //        instructionEditText.setOnFocusChangeListener { view, hasFocus ->
@@ -154,6 +149,7 @@ class CreateTriggerActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         checkNotificationPermission()
+        checkAlarmPermission()
     }
 
     private fun checkNotificationPermission() {
@@ -165,6 +161,21 @@ class CreateTriggerActivity : AppCompatActivity() {
                 grantNotificationPermissionButton.setOnClickListener {
                     val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                     startActivity(intent)
+                }
+            }
+        }
+    }
+
+    private fun checkAlarmPermission() {
+        if (selectedTriggerType == TriggerType.SCHEDULED_TIME) {
+            if (PermissionUtils.canScheduleExactAlarms(this)) {
+                alarmPermissionWarning.visibility = View.GONE
+            } else {
+                alarmPermissionWarning.visibility = View.VISIBLE
+                grantAlarmPermissionButton.setOnClickListener {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                        startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+                    }
                 }
             }
         }
@@ -226,16 +237,23 @@ class CreateTriggerActivity : AppCompatActivity() {
                 scheduledTimeOptions.visibility = View.VISIBLE
                 notificationOptions.visibility = View.GONE
                 chargingStateOptions.visibility = View.GONE
+                // Hide other permission warnings
+                notificationPermissionWarning.visibility = View.GONE
             }
             TriggerType.NOTIFICATION -> {
                 scheduledTimeOptions.visibility = View.GONE
                 notificationOptions.visibility = View.VISIBLE
                 chargingStateOptions.visibility = View.GONE
+                // Hide other permission warnings
+                alarmPermissionWarning.visibility = View.GONE
             }
             TriggerType.CHARGING_STATE -> {
                 scheduledTimeOptions.visibility = View.GONE
                 notificationOptions.visibility = View.GONE
                 chargingStateOptions.visibility = View.VISIBLE
+                // Hide other permission warnings
+                notificationPermissionWarning.visibility = View.GONE
+                alarmPermissionWarning.visibility = View.GONE
             }
         }
     }
