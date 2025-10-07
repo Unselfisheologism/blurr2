@@ -3,6 +3,7 @@ package com.blurr.voice.triggers.ui
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Color
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.CheckBox
@@ -86,7 +87,7 @@ class TriggersActivity : AppCompatActivity() {
 
 
     private fun showBatteryOptimizationWarning(onAcknowledge: () -> Unit) {
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle("Vendor Battery Optimization")
             .setMessage("Your vendor might not support Panda background trigger monitoring. To ensure Panda works properly, please disable any kind of battery optimization for the app.")
             .setPositiveButton("OK") { dialog, _ ->
@@ -94,6 +95,8 @@ class TriggersActivity : AppCompatActivity() {
                 dialog.dismiss()
             }
             .show()
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.parseColor("#4CAF50"))
     }
 
     private fun startTriggerService() {
