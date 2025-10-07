@@ -91,6 +91,38 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
+                <LinearLayout
+                    android:id="@+id/notificationPermissionWarning"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:background="@drawable/warning_background"
+                    android:padding="8dp"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Permission Required"
+                        android:textColor="@color/white"
+                        android:textStyle="bold"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="To read notifications, Panda needs permission to access them."
+                        android:textColor="@color/white"/>
+
+                    <Button
+                        android:id="@+id/grantNotificationPermissionButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Grant Permission"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/rounded_button_secondary"/>
+                </LinearLayout>
+
                 <CheckBox
                     android:id="@+id/selectAllAppsCheckbox"
                     android:layout_width="wrap_content"
