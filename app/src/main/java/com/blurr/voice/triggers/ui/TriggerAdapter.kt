@@ -18,6 +18,13 @@ class TriggerAdapter(
     private val onEditClick: (Trigger) -> Unit
 ) : RecyclerView.Adapter<TriggerAdapter.TriggerViewHolder>() {
 
+    private var interactionsEnabled: Boolean = true
+
+    fun setInteractionsEnabled(enabled: Boolean) {
+        this.interactionsEnabled = enabled
+        notifyDataSetChanged()
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TriggerViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_trigger, parent, false)
         return TriggerViewHolder(view)
@@ -77,6 +84,10 @@ class TriggerAdapter(
             enabledSwitch.setOnCheckedChangeListener { _, isChecked ->
                 onCheckedChange(trigger, isChecked)
             }
+
+            enabledSwitch.isEnabled = interactionsEnabled
+            deleteButton.isEnabled = interactionsEnabled
+            editButton.isEnabled = interactionsEnabled
         }
     }
 }

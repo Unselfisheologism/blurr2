@@ -51,13 +51,6 @@ class MyApplication : Application(), PurchasesUpdatedListener {
         IntentRegistry.register(ShareTextIntent())
         IntentRegistry.register(EmailComposeIntent())
         IntentRegistry.init(this)
-
-        val serviceIntent = Intent(this, TriggerMonitoringService::class.java)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
-        }
     }
 
     private fun connectToBillingService() {
