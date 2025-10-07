@@ -1,13 +1,15 @@
 package com.blurr.voice.triggers.ui
 
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
 import android.widget.Button
-import android.widget.EditText
 import android.widget.CheckBox
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.RadioGroup
 import android.widget.ScrollView
@@ -18,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.blurr.voice.R
+import com.blurr.voice.triggers.PermissionUtils
 import com.blurr.voice.triggers.Trigger
 import com.blurr.voice.triggers.TriggerManager
 import com.blurr.voice.triggers.TriggerType
@@ -40,6 +43,10 @@ class CreateTriggerActivity : AppCompatActivity() {
     private lateinit var appAdapter: AppAdapter
     private lateinit var scrollView: ScrollView
     private lateinit var selectAllAppsCheckbox: CheckBox
+    private lateinit var notificationPermissionWarning: LinearLayout
+    private lateinit var grantNotificationPermissionButton: Button
+    private lateinit var alarmPermissionWarning: LinearLayout
+    private lateinit var grantAlarmPermissionButton: Button
 
     private var selectedTriggerType = TriggerType.SCHEDULED_TIME
     private var selectedApps = listOf<AppInfo>()
@@ -62,6 +69,10 @@ class CreateTriggerActivity : AppCompatActivity() {
         timePicker = findViewById(R.id.timePicker)
         appsRecyclerView = findViewById(R.id.appsRecyclerView)
         dayOfWeekChipGroup = findViewById(R.id.dayOfWeekChipGroup)
+        notificationPermissionWarning = findViewById(R.id.notificationPermissionWarning)
+        grantNotificationPermissionButton = findViewById(R.id.grantNotificationPermissionButton)
+        alarmPermissionWarning = findViewById(R.id.alarmPermissionWarning)
+        grantAlarmPermissionButton = findViewById(R.id.grantAlarmPermissionButton)
 //        scrollView = findViewById(R.id.scrollView)
 
 //        instructionEditText.setOnFocusChangeListener { view, hasFocus ->
@@ -135,6 +146,41 @@ class CreateTriggerActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        checkNotificationPermission()
+        checkAlarmPermission()
+    }
+
+    private fun checkNotificationPermission() {
+        if (selectedTriggerType == TriggerType.NOTIFICATION) {
+            if (PermissionUtils.isNotificationListenerEnabled(this)) {
+                notificationPermissionWarning.visibility = View.GONE
+            } else {
+                notificationPermissionWarning.visibility = View.VISIBLE
+                grantNotificationPermissionButton.setOnClickListener {
+                    val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                    startActivity(intent)
+                }
+            }
+        }
+    }
+
+    private fun checkAlarmPermission() {
+        if (selectedTriggerType == TriggerType.SCHEDULED_TIME) {
+            if (PermissionUtils.canScheduleExactAlarms(this)) {
+                alarmPermissionWarning.visibility = View.GONE
+            } else {
+                alarmPermissionWarning.visibility = View.VISIBLE
+                grantAlarmPermissionButton.setOnClickListener {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                        startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+                    }
+                }
+            }
+        }
+    }
+
     private fun testTrigger() {
         val instruction = instructionEditText.text.toString()
         if (instruction.isBlank()) {
@@ -191,16 +237,23 @@ class CreateTriggerActivity : AppCompatActivity() {
                 scheduledTimeOptions.visibility = View.VISIBLE
                 notificationOptions.visibility = View.GONE
                 chargingStateOptions.visibility = View.GONE
+                // Hide other permission warnings
+                notificationPermissionWarning.visibility = View.GONE
             }
             TriggerType.NOTIFICATION -> {
                 scheduledTimeOptions.visibility = View.GONE
                 notificationOptions.visibility = View.VISIBLE
                 chargingStateOptions.visibility = View.GONE
+                // Hide other permission warnings
+                alarmPermissionWarning.visibility = View.GONE
             }
             TriggerType.CHARGING_STATE -> {
                 scheduledTimeOptions.visibility = View.GONE
                 notificationOptions.visibility = View.GONE
                 chargingStateOptions.visibility = View.VISIBLE
+                // Hide other permission warnings
+                notificationPermissionWarning.visibility = View.GONE
+                alarmPermissionWarning.visibility = View.GONE
             }
         }
     }
@@ -269,6 +322,12 @@ class CreateTriggerActivity : AppCompatActivity() {
                 )
             }
             TriggerType.NOTIFICATION -> {
+                if (!PermissionUtils.isNotificationListenerEnabled(this)) {
+                    Toast.makeText(this, "Notification listener permission is required.", Toast.LENGTH_SHORT).show()
+                    checkNotificationPermission()
+                    return
+                }
+
                 val packageName: String
                 val appName: String
                 if (selectAllAppsCheckbox.isChecked) {
