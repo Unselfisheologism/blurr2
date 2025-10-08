@@ -59,7 +59,7 @@
             android:exported="false"
             android:launchMode="singleTop"
             android:excludeFromRecents="true"
-            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
+            android:theme="@style/Theme.Blurr" />
 
         <activity
             android:name=".AssistEntryActivity"

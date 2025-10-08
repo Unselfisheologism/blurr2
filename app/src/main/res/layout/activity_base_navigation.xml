@@ -3,7 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res/auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg"
     android:fitsSystemWindows="true">
 
     <!-- Content container for child activities -->
@@ -20,7 +19,6 @@
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_alignParentBottom="true"
-        android:background="#1A1A1A"
         android:orientation="horizontal"
         android:paddingTop="8dp"
         android:paddingBottom="8dp">
@@ -40,7 +38,7 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/ic_triggers"
+                android:src="@drawable/trigger"
                 android:tint="#FFFFFF" />
 
             <TextView
@@ -67,7 +65,7 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/ic_moments"
+                android:src="@drawable/moments"
                 android:tint="#FFFFFF" />
 
             <TextView
@@ -114,15 +112,14 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/ic_upgrade"
-                android:tint="#5880F7" />
+                android:src="@drawable/pro" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Upgrade"
-                android:textColor="#5880F7"
+                android:text="Buy Pro"
+                android:textColor="#FFFFFF"
                 android:textSize="12sp" />
         </LinearLayout>
 
@@ -141,7 +138,7 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/ic_settings_nav"
+                android:src="@drawable/setting"
                 android:tint="#FFFFFF" />
 
             <TextView

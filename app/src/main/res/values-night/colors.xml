@@ -8,20 +8,20 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="wave_color">#00BCD4</color>
-    <color name="background_color">#101010</color> <!-- Dark background -->
-    <color name="dark_background">#101010</color>
+    <color name="background_color">#161616</color> <!-- Dark background -->
+    <color name="dark_background">#161616</color>
     <color name="button_blue">#FF3663FF</color>
     <color name="text_gray">#FF8A8A8E</color>
     <color name="gradient_start">#FFC882FF</color>
     <color name="gradient_end">#FFA182FF</color>
-    <color name="input_box_background">#2E2F33</color>
-    <color name="panel_background">#FF1C1C1E</color>
+    <color name="input_box_background">#161616</color>
+    <color name="panel_background">#161616</color>
     
     <!-- Memory management colors -->
-    <color name="background">#101010</color>
-    <color name="primary">#101010</color>
+    <color name="background">#161616</color>
+    <color name="primary">#161616</color>
     <color name="accent">#03DAC5</color>
-    <color name="surface">#FFFFFF</color>
-    <color name="text_primary">#000000</color>
-    <color name="text_secondary">#666666</color>
+    <color name="surface">#161616</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#CCCCCC</color>
 </resources>
