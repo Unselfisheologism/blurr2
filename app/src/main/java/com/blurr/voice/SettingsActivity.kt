@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
 
-class SettingsActivity : AppCompatActivity() {
+class SettingsActivity : BaseNavigationActivity() {
 
     private lateinit var ttsVoicePicker: NumberPicker
     private lateinit var backButton: Button
@@ -330,5 +330,8 @@ class SettingsActivity : AppCompatActivity() {
             androidx.core.content.ContextCompat.getColor(this, R.color.white)
         )
     }
-
+    
+    override fun getContentLayoutId(): Int = R.layout.activity_settings
+    
+    override fun getCurrentNavItem(): BaseNavigationActivity.NavItem = BaseNavigationActivity.NavItem.SETTINGS
 }
