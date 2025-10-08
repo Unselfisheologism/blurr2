@@ -10,6 +10,7 @@ import android.widget.CheckBox
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.blurr.voice.BaseNavigationActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.blurr.voice.R
@@ -18,7 +19,7 @@ import com.blurr.voice.triggers.TriggerMonitoringService
 import com.blurr.voice.triggers.TriggerType
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 
-class TriggersActivity : AppCompatActivity() {
+class TriggersActivity : BaseNavigationActivity() {
 
     private lateinit var triggerManager: TriggerManager
     private lateinit var triggerAdapter: TriggerAdapter
@@ -190,4 +191,8 @@ class TriggersActivity : AppCompatActivity() {
         val triggers = triggerManager.getTriggers()
         triggerAdapter.updateTriggers(triggers)
     }
+    
+    override fun getContentLayoutId(): Int = R.layout.activity_triggers
+    
+    override fun getCurrentNavItem(): BaseNavigationActivity.NavItem = BaseNavigationActivity.NavItem.TRIGGERS
 }

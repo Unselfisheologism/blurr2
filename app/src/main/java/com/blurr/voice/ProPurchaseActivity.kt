@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
-class ProPurchaseActivity : AppCompatActivity(), PurchasesUpdatedListener {
+class ProPurchaseActivity : BaseNavigationActivity(), PurchasesUpdatedListener {
 
     private lateinit var priceTextView: TextView
     private lateinit var purchaseButton: Button
@@ -181,5 +181,12 @@ class ProPurchaseActivity : AppCompatActivity(), PurchasesUpdatedListener {
         } else {
             Toast.makeText(this, "Purchase failed: ${billingResult.debugMessage}", Toast.LENGTH_LONG).show()
         }
+    }
+    override fun getContentLayoutId(): Int {
+        return R.layout.activity_pro_purchase
+    }
+
+    override fun getCurrentNavItem(): NavItem {
+        return BaseNavigationActivity.NavItem.UPGRADE
     }
 }
