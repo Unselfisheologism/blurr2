@@ -113,7 +113,7 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
             PermissionStep(
                 titleRes = R.string.microphone_permission_title,
                 descRes = R.string.microphone_permission_desc,
-                iconRes = R.drawable.ic_microphone,
+                iconRes = R.drawable.microphone,
                 isGranted = { ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED }
             ) {
                 requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -125,7 +125,7 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
             PermissionStep(
                 titleRes = R.string.overlay_permission_title,
                 descRes = R.string.overlay_permission_desc,
-                iconRes = R.drawable.ic_overlay,
+                iconRes = R.drawable.display,
                 isGranted = { Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this) }
             ) {
                 val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
@@ -139,7 +139,7 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
                 PermissionStep(
                     titleRes = R.string.notifications_permission_title,
                     descRes = R.string.notifications_permission_desc,
-                    iconRes = R.drawable.ic_overlay,
+                    iconRes = R.drawable.bell,
                     isGranted = { ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED }
                 ) {
                     requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -156,7 +156,7 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
             PermissionStep(
                 titleRes = R.string.default_assistant_role_title,
                 descRes = R.string.default_assistant_role_desc,
-                iconRes = R.drawable.ic_launcher_foreground,
+                iconRes = R.drawable.butler,
                 isGranted = {
                     val rm = getSystemService(RoleManager::class.java)
                     rm?.isRoleHeld(RoleManager.ROLE_ASSISTANT) == true
