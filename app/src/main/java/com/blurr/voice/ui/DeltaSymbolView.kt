@@ -42,7 +42,7 @@ class DeltaSymbolView @JvmOverloads constructor(
                 resources.getDimensionPixelSize(R.dimen.delta_symbol_size),
                 resources.getDimensionPixelSize(R.dimen.delta_symbol_size)
             )
-            setImageResource(R.drawable.ic_delta_symbol)
+            setImageResource(R.drawable.ic_delta_large)
             scaleType = ImageView.ScaleType.CENTER_INSIDE
         }
 

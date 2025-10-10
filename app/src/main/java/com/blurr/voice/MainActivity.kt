@@ -52,7 +52,6 @@ class MainActivity : BaseNavigationActivity() {
     private lateinit var handler: Handler
     private lateinit var managePermissionsButton: TextView
     private lateinit var tvPermissionStatus: TextView
-    private lateinit var settingsButton: ImageButton
     private lateinit var userId: String
     private lateinit var runExampleButton: TextView
     private lateinit var permissionManager: PermissionManager
@@ -187,7 +186,6 @@ class MainActivity : BaseNavigationActivity() {
         runExampleButton = findViewById(R.id.run_example_button)
 
         tvPermissionStatus = findViewById(R.id.tv_permission_status)
-        settingsButton = findViewById(R.id.settingsButton)
         wakeWordHelpLink = findViewById(R.id.wakeWordHelpLink)
 
         tasksRemainingTextView = findViewById(R.id.tasks_remaining_textview)
@@ -204,7 +202,6 @@ class MainActivity : BaseNavigationActivity() {
 
         // Setup UI and listeners
         setupClickListeners()
-        setupSettingsButton()
 
         
         // Show loading and perform initial billing check
@@ -340,11 +337,6 @@ class MainActivity : BaseNavigationActivity() {
         }
     }
 
-    private fun setupSettingsButton() {
-        settingsButton.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
-        }
-    }
     private fun requestLimitIncrease() {
         val userEmail = auth.currentUser?.email
         if (userEmail.isNullOrEmpty()) {
