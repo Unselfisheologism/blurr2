@@ -21,9 +21,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import com.blurr.voice.api.GoogleTts
 import com.blurr.voice.api.PicovoiceKeyManager
 import com.blurr.voice.api.TTSVoice
-import com.blurr.voice.api.GoogleTts
-import com.blurr.voice.api.PicovoiceKeyManager
-import com.blurr.voice.api.TTSVoice
 import com.blurr.voice.utilities.SpeechCoordinator
 import com.blurr.voice.utilities.VoicePreferenceManager
 import com.blurr.voice.utilities.UserProfileManager
@@ -356,16 +353,12 @@ class SettingsActivity : AppCompatActivity() {
         val userProfileManager = UserProfileManager(this)
         userProfileManager.clearProfile()
 
-        // Clear Picovoice API Key
-        val picovoiceKeyManager = PicovoiceKeyManager(this)
-        picovoiceKeyManager.clearUserProvidedKey()
-
         // Clear all shared preferences for this app
         getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
 
 
         // Restart the app by navigating to the onboarding screen
-        val intent = Intent(this, OnboardingPermissionsActivity::class.java)
+        val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
