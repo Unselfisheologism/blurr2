@@ -77,6 +77,7 @@
         <activity android:name=".triggers.ui.CreateTriggerActivity" android:exported="false" android:label="Create Trigger" android:theme="@style/Theme.Blurr" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".triggers.ui.ChooseTriggerTypeActivity" android:exported="false" android:label="Choose Trigger Type" android:theme="@style/Theme.Blurr" />
         <activity android:name=".ProPurchaseActivity" android:exported="false" android:label="Upgrade to Pro" android:theme="@style/Theme.Blurr" />
+        <activity android:name=".MomentsActivity" android:exported="false" android:label="Moments" android:theme="@style/Theme.Blurr" />
 
 
         <!-- Your Other Services -->

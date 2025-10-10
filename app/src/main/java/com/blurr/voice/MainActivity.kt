@@ -23,6 +23,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.VideoView
@@ -60,7 +61,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
 import java.io.File
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseNavigationActivity() {
 
     private lateinit var handler: Handler
     private lateinit var managePermissionsButton: TextView
@@ -174,7 +175,7 @@ class MainActivity : AppCompatActivity() {
         }
 
 
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_main_content)
         // existing click listener
         findViewById<TextView>(R.id.btn_set_default_assistant).setOnClickListener {
             startActivity(Intent(this, RoleRequestActivity::class.java))
@@ -215,6 +216,7 @@ class MainActivity : AppCompatActivity() {
         setupClickListeners()
         setupSettingsButton()
         setupGradientText()
+
         
         // Show loading and perform initial billing check
         showLoading(true)
@@ -319,19 +321,18 @@ class MainActivity : AppCompatActivity() {
         handleIntent(intent)
     }
 
+    override fun getContentLayoutId(): Int = R.layout.activity_main_content
+    
+    override fun getCurrentNavItem(): BaseNavigationActivity.NavItem = BaseNavigationActivity.NavItem.HOME
+
     private fun setupClickListeners() {
-        findViewById<TextView>(R.id.triggersButton).setOnClickListener {
-            startActivity(Intent(this, com.blurr.voice.triggers.ui.TriggersActivity::class.java))
-        }
         findViewById<TextView>(R.id.startConversationButton).setOnClickListener {
             startConversationalAgent()
         }
 //        findViewById<TextView>(R.id.memoriesButton).setOnClickListener {
 //            startActivity(Intent(this, MemoriesActivity::class.java))
 //        }
-        findViewById<TextView>(R.id.goProButton).setOnClickListener {
-            startActivity(Intent(this, ProPurchaseActivity::class.java))
-        }
+
         saveKeyButton.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
@@ -342,11 +343,7 @@ class MainActivity : AppCompatActivity() {
         increaseLimitsLink.setOnClickListener {
             requestLimitIncrease()
         }
-        findViewById<TextView>(R.id.github_link_textview).setOnClickListener {
-            val url = "https://github.com/Ayush0Chaudhary/blurr"
-            val intent = Intent(Intent.ACTION_VIEW, url.toUri())
-            startActivity(intent)
-        }
+
         wakeWordHelpLink.setOnClickListener {
             showWakeWordFailureDialog()
         }
@@ -494,12 +491,10 @@ class MainActivity : AppCompatActivity() {
     private fun updateTaskCounter() {
         lifecycleScope.launch {
             val tasksLeft = freemiumManager.getTasksRemaining()
-            val goProButton = findViewById<TextView>(R.id.goProButton)
 
             if (tasksLeft == Long.MAX_VALUE) {
                 tasksRemainingTextView.visibility = View.GONE
                 increaseLimitsLink.visibility = View.GONE
-                goProButton.visibility = View.GONE
 
             } else if (tasksLeft != null && tasksLeft >= 0) {
                 if (tasksLeft > 0) {
@@ -508,13 +503,11 @@ class MainActivity : AppCompatActivity() {
                     tasksRemainingTextView.text = "You have 0 free tasks left for today."
                 }
                 tasksRemainingTextView.visibility = View.VISIBLE
-                goProButton.visibility = View.VISIBLE
                 increaseLimitsLink.visibility = View.VISIBLE
 
             } else {
                 tasksRemainingTextView.visibility = View.GONE
                 increaseLimitsLink.visibility = View.VISIBLE
-                goProButton.visibility = View.VISIBLE
             }
         }
     }
