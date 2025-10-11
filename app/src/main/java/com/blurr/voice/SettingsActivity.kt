@@ -41,10 +41,11 @@ class SettingsActivity : BaseNavigationActivity() {
     private lateinit var editUserName: android.widget.EditText
     private lateinit var editUserEmail: android.widget.EditText
     private lateinit var editWakeWordKey: android.widget.EditText
-    private lateinit var textGetPicovoiceKeyLink: TextView // NEW: Declare the TextView for the link
-    private lateinit var wakeWordButton: TextView // NEW: Declare wake word button
-    private lateinit var wakeWordManager: WakeWordManager // NEW: Wake word manager
-    private lateinit var requestPermissionLauncher: ActivityResultLauncher<String> // NEW: Permission launcher
+    private lateinit var textGetPicovoiceKeyLink: TextView
+    private lateinit var wakeWordButton: TextView
+    private lateinit var buttonSignOut: Button
+    private lateinit var wakeWordManager: WakeWordManager
+    private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
 
 
     private lateinit var sc: SpeechCoordinator
@@ -104,11 +105,12 @@ class SettingsActivity : BaseNavigationActivity() {
         batteryOptimizationHelpButton = findViewById(R.id.batteryOptimizationHelpButton)
       
         editWakeWordKey = findViewById(R.id.editWakeWordKey)
-        wakeWordButton = findViewById(R.id.wakeWordButton) // NEW: Initialize wake word button
+        wakeWordButton = findViewById(R.id.wakeWordButton)
+        buttonSignOut = findViewById(R.id.buttonSignOut)
 
         editUserName = findViewById(R.id.editUserName)
         editUserEmail = findViewById(R.id.editUserEmail)
-        textGetPicovoiceKeyLink = findViewById(R.id.textGetPicovoiceKeyLink) // NEW: Initialize the TextView
+        textGetPicovoiceKeyLink = findViewById(R.id.textGetPicovoiceKeyLink)
 
 
         setupClickListeners()
@@ -173,6 +175,10 @@ class SettingsActivity : BaseNavigationActivity() {
                 Toast.makeText(this, "Could not open link. No browser found.", Toast.LENGTH_SHORT).show()
                 Log.e("SettingsActivity", "Failed to open Picovoice link", e)
             }
+        }
+
+        buttonSignOut.setOnClickListener {
+            showSignOutConfirmationDialog()
         }
     }
 
@@ -330,6 +336,34 @@ class SettingsActivity : BaseNavigationActivity() {
             androidx.core.content.ContextCompat.getColor(this, R.color.white)
         )
     }
+
+    private fun showSignOutConfirmationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Sign Out")
+            .setMessage("Are you sure you want to sign out? This will clear all your settings and data.")
+            .setPositiveButton("Sign Out") { _, _ ->
+                signOut()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun signOut() {
+        // Clear User Profile
+        val userProfileManager = UserProfileManager(this)
+        userProfileManager.clearProfile()
+
+        // Clear all shared preferences for this app
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
+
+
+        // Restart the app by navigating to the onboarding screen
+        val intent = Intent(this, LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
+    }
+
     
     override fun getContentLayoutId(): Int = R.layout.activity_settings
     

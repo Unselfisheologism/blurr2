@@ -25,6 +25,11 @@ class UserProfileManager(private val context: Context) {
 
     fun getName(): String? = prefs.getString(KEY_NAME, null)
     fun getEmail(): String? = prefs.getString(KEY_EMAIL, null)
+
+    fun clearProfile() {
+        prefs.edit().clear().apply()
+    }
+
 }
 
 
