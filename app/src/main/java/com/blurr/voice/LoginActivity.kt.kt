@@ -9,6 +9,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.EditText
 import android.widget.Toast
+import android.graphics.Color
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -50,6 +51,10 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_onboarding)
 
         signInButton = findViewById(R.id.googleSignInButton)
+        // Customize Google Sign-In button appearance and text
+        signInButton.setSize(SignInButton.SIZE_WIDE)
+        signInButton.setColorScheme(SignInButton.COLOR_LIGHT)
+        customizeGoogleSignInButton(signInButton)
         emailField = findViewById(R.id.emailInput)
         emailSendLinkButton = findViewById(R.id.emailSendLinkButton)
         progressBar = findViewById(R.id.progressBar)
@@ -89,6 +94,7 @@ class LoginActivity : AppCompatActivity() {
                         Toast.makeText(this, "Google Sign-In failed.", Toast.LENGTH_SHORT).show()
                         progressBar.visibility = View.GONE
                         loadingText.visibility = View.GONE
+                        signInButton.isEnabled = true
                     }
                 } catch (e: ApiException) {
                     Log.w("LoginActivity", "Google sign in failed", e)
@@ -97,11 +103,13 @@ class LoginActivity : AppCompatActivity() {
                     Toast.makeText(this, "Google Sign-In failed.", Toast.LENGTH_SHORT).show()
                     progressBar.visibility = View.GONE
                     loadingText.visibility = View.GONE
+                    signInButton.isEnabled = true
                 }
             } else {
                 // User cancelled or there was an error - hide progress bar
                 progressBar.visibility = View.GONE
                 loadingText.visibility = View.GONE
+                signInButton.isEnabled = true
             }
         }
 
@@ -120,9 +128,23 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    private fun customizeGoogleSignInButton(button: SignInButton) {
+        // Replace the text and color inside Google's SignInButton
+        // Note: SignInButton contains a TextView as its first child
+        (0 until button.childCount)
+            .map { button.getChildAt(it) }
+            .firstOrNull { it is TextView }
+            ?.let { tv ->
+                val textView = tv as TextView
+                textView.text = "Continue with Google Login"
+                textView.setTextColor(Color.GRAY)
+            }
+    }
+
     private fun signIn() {
         progressBar.visibility = View.VISIBLE
         loadingText.visibility = View.VISIBLE
+        signInButton.isEnabled = false
         
         Log.d("LoginActivity", "Starting Google Sign-In process")
         Log.d("LoginActivity", "Using web client ID: ${getString(R.string.default_web_client_id)}")
@@ -143,6 +165,7 @@ class LoginActivity : AppCompatActivity() {
                     Toast.makeText(this, "Sign-in UI failed to start: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                     progressBar.visibility = View.GONE
                     loadingText.visibility = View.GONE
+                    signInButton.isEnabled = true
                 }
             }
             .addOnFailureListener(this) { e ->
@@ -152,6 +175,7 @@ class LoginActivity : AppCompatActivity() {
                 Toast.makeText(this, "Sign-in failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                 progressBar.visibility = View.GONE
                 loadingText.visibility = View.GONE
+                signInButton.isEnabled = true
             }
     }
 
@@ -236,6 +260,7 @@ class LoginActivity : AppCompatActivity() {
                 // Hide progress bar and loading text when Firebase authentication completes
                 progressBar.visibility = View.GONE
                 loadingText.visibility = View.GONE
+                signInButton.isEnabled = true
                 
                 if (task.isSuccessful) {
                     val isNewUser = task.result?.additionalUserInfo?.isNewUser ?: false

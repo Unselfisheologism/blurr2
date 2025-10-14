@@ -28,7 +28,7 @@ class PermissionsActivity : AppCompatActivity() {
     private lateinit var assistantStatus: TextView
 
     // NEW: Add Button variables
-    private lateinit var grantAccessibilityButton: Button
+    private lateinit var grantAccessibilityButton: TextView
     private lateinit var grantMicrophoneButton: Button
     private lateinit var grantOverlayButton: Button
     private lateinit var grantAssistantButton: Button
