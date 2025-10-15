@@ -427,11 +427,11 @@ class MainActivity : BaseNavigationActivity() {
     }
     private fun updateTaskCounter() {
         lifecycleScope.launch {
+
             val tasksLeft = freemiumManager.getTasksRemaining()
 
             if (tasksLeft == Long.MAX_VALUE) {
                 tasksRemainingTextView.visibility = View.GONE
-                increaseLimitsLink.visibility = View.GONE
 
             } else if (tasksLeft != null && tasksLeft >= 0) {
                 if (tasksLeft <= 3) {

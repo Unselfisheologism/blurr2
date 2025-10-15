@@ -173,7 +173,6 @@
                 android:text="Email the Developer with your problems!"
                 android:textColor="#5880F7"
                 android:textSize="14sp"
-                android:visibility="gone"
                 tools:visibility="visible" />
 
             <TextView
