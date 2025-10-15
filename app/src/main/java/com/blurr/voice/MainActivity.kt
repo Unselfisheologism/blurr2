@@ -677,10 +677,17 @@ class MainActivity : BaseNavigationActivity() {
                     if (document != null && document.exists()) {
                         val message = document.getString("developerMessage")
                         if (!message.isNullOrEmpty()) {
-                            val developerMessageTextView = findViewById<TextView>(R.id.developer_message_textview)
-                            developerMessageTextView.text = message
-                            developerMessageTextView.visibility = View.VISIBLE
-                            Logger.d("MainActivity", "Developer message displayed: $message")
+                            val dialog = AlertDialog.Builder(this@MainActivity)
+                                .setTitle("Message from Developer")
+                                .setMessage(message)
+                                .setPositiveButton("OK") { dialogInterface, _ ->
+                                    dialogInterface.dismiss()
+                                }
+                                .show()
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(
+                                ContextCompat.getColor(this@MainActivity, R.color.black)
+                            )
+                            Logger.d("MainActivity", "Developer message displayed in dialog")
                         } else {
                             Logger.d("MainActivity", "Developer message is empty")
                         }
