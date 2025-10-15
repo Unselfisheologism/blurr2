@@ -52,7 +52,6 @@ class MainActivity : BaseNavigationActivity() {
     private lateinit var managePermissionsButton: TextView
     private lateinit var tvPermissionStatus: TextView
     private lateinit var userId: String
-    private lateinit var runExampleButton: TextView
     private lateinit var permissionManager: PermissionManager
     private lateinit var wakeWordManager: WakeWordManager
     private lateinit var auth: FirebaseAuth
@@ -133,7 +132,6 @@ class MainActivity : BaseNavigationActivity() {
             if (result.resultCode == RESULT_OK) {
                 Toast.makeText(this, "Set as default assistant successfully!", Toast.LENGTH_SHORT).show()
             } else {
-                // Explain and offer Settings
                 Toast.makeText(this, "Couldn’t become default assistant. Opening settings…", Toast.LENGTH_SHORT).show()
                 Logger.w("MainActivity", "Role request canceled or app not eligible.\n${explainAssistantEligibility()}")
                 openAssistantPickerSettings()
@@ -159,7 +157,7 @@ class MainActivity : BaseNavigationActivity() {
         permissionManager.initializePermissionLauncher()
 
         managePermissionsButton = findViewById(R.id.btn_manage_permissions)
-        runExampleButton = findViewById(R.id.run_example_button)
+
 
         tvPermissionStatus = findViewById(R.id.tv_permission_status)
         wakeWordHelpLink = findViewById(R.id.wakeWordHelpLink)
@@ -280,9 +278,8 @@ class MainActivity : BaseNavigationActivity() {
         findViewById<TextView>(R.id.disclaimer_link).setOnClickListener {
             showDisclaimerDialog()
         }
-        runExampleButton.setOnClickListener {
-            val task = "open youtube and play never gonna give you up"
-            AgentService.start(this, task)
+        findViewById<TextView>(R.id.examples_link).setOnClickListener {
+            showExamplesDialog()
         }
     }
 
@@ -387,6 +384,37 @@ class MainActivity : BaseNavigationActivity() {
             .show()
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(
             ContextCompat.getColor(this, R.color.white)
+        )
+    }
+
+    private fun showExamplesDialog() {
+        val examples = arrayOf(
+            "Open YouTube and play music",
+            "Send a text message",
+            "Set an alarm for 30 minutes",
+            "Open camera app",
+            "Check weather forecast",
+            "Open calculator",
+            "Surprise me"
+        )
+        
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Example Commands")
+            .setItems(examples) { _, which ->
+                val selectedExample = examples[which]
+                if (selectedExample == "Surprise me"){
+                    AgentService.start(this, "play never gonna give you up on youtube")
+
+                }
+                AgentService.start(this, selectedExample)
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+        
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(
+            ContextCompat.getColor(this, R.color.black)
         )
     }
 
@@ -504,11 +532,9 @@ class MainActivity : BaseNavigationActivity() {
         if (allPermissionsGranted) {
             tvPermissionStatus.text = "All required permissions are granted."
             managePermissionsButton.visibility = View.GONE
-            runExampleButton.visibility = View.VISIBLE
             tvPermissionStatus.setTextColor(Color.parseColor("#4CAF50")) // Green
         } else {
             tvPermissionStatus.text = "Some permissions are missing. Tap below to manage."
-            runExampleButton.visibility = View.GONE
             tvPermissionStatus.setTextColor(Color.parseColor("#F44336")) // Red
         }
     }
@@ -670,6 +696,15 @@ class MainActivity : BaseNavigationActivity() {
     private fun displayDeveloperMessage() {
         lifecycleScope.launch {
             try {
+                // Check if message has been shown more than once
+                val sharedPrefs = getSharedPreferences("developer_message_prefs", Context.MODE_PRIVATE)
+                val displayCount = sharedPrefs.getInt("developer_message_count", 0)
+                
+                if (displayCount >= 1) {
+                    Logger.d("MainActivity", "Developer message already shown $displayCount times, skipping display")
+                    return@launch
+                }
+                
                 val db = Firebase.firestore
                 val docRef = db.collection("settings").document("freemium")
                 
@@ -682,6 +717,11 @@ class MainActivity : BaseNavigationActivity() {
                                 .setMessage(message)
                                 .setPositiveButton("OK") { dialogInterface, _ ->
                                     dialogInterface.dismiss()
+                                    // Increment the display count after user dismisses
+                                    val editor = sharedPrefs.edit()
+                                    editor.putInt("developer_message_count", displayCount + 1)
+                                    editor.apply()
+                                    Logger.d("MainActivity", "Developer message display count updated to ${displayCount + 1}")
                                 }
                                 .show()
                             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(
