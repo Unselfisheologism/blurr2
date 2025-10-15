@@ -7,6 +7,7 @@ import android.graphics.drawable.VectorDrawable
 import android.util.Log
 import android.widget.ImageView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import com.blurr.voice.R
 
 /**
@@ -86,10 +87,9 @@ class DeltaSymbolAnimator(private val context: Context) {
     private fun applyColorToImageView(imageView: ImageView, color: Int) {
         try {
             val drawable = imageView.drawable
-            if (drawable is VectorDrawable) {
-                drawable.setTint(color)
-            } else {
-                Log.w(TAG, "ImageView drawable is not a VectorDrawable, cannot apply tint")
+            if (drawable != null) {
+                val wrappedDrawable = DrawableCompat.wrap(drawable).mutate()
+                DrawableCompat.setTint(wrappedDrawable, color)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error applying color to ImageView", e)

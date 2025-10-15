@@ -36,6 +36,7 @@ import com.blurr.voice.utilities.WakeWordManager
 import com.blurr.voice.utilities.PandaState
 import com.blurr.voice.utilities.PandaStateManager
 import com.blurr.voice.utilities.DeltaStateColorMapper
+import com.blurr.voice.views.DeltaSymbolView
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
@@ -69,6 +70,8 @@ class MainActivity : BaseNavigationActivity() {
     private lateinit var proSubscriptionTag: View
     private lateinit var permissionsTag: View
     private lateinit var permissionsStatusTag: TextView
+    private lateinit var deltaSymbol: DeltaSymbolView
+
 
     private lateinit var root: View
     companion object {
@@ -172,6 +175,7 @@ class MainActivity : BaseNavigationActivity() {
         proSubscriptionTag = findViewById(R.id.pro_subscription_tag)
         permissionsTag = findViewById(R.id.permissions_tag)
         permissionsStatusTag = findViewById(R.id.permissions_status_tag)
+        deltaSymbol = findViewById(R.id.delta_symbol)
         freemiumManager = FreemiumManager()
         updateStatusText(PandaState.IDLE)
         setupProBanner()
@@ -287,6 +291,14 @@ class MainActivity : BaseNavigationActivity() {
         findViewById<TextView>(R.id.examples_link).setOnClickListener {
             showExamplesDialog()
         }
+        
+        // Add click listener to delta symbol
+        deltaSymbol.setOnClickListener {
+            // Only start conversational agent if in ready/idle state
+            if (pandaStateManager.getCurrentState() == PandaState.IDLE) {
+                startConversationalAgent()
+            }
+        }
     }
 
     private fun requestLimitIncrease() {
@@ -337,17 +349,33 @@ class MainActivity : BaseNavigationActivity() {
         pandaStateManager = PandaStateManager.getInstance(this)
         stateChangeListener = { newState ->
             updateStatusText(newState)
+
+            updateDeltaVisuals(newState)
             Logger.d("MainActivity", "Panda state changed to: ${newState.name}")
         }
         pandaStateManager.addStateChangeListener(stateChangeListener)
     }
+    private fun updateDeltaVisuals(state: PandaState) {
+        runOnUiThread {
+            // Get the color for the current state
+            val color = DeltaStateColorMapper.getColor(this, state)
+            deltaSymbol.setColor(color)
 
+            // Start or stop the glow based on whether the state is "active"
+            if (DeltaStateColorMapper.isActiveState(state)) {
+                deltaSymbol.startGlow()
+            } else {
+                deltaSymbol.stopGlow()
+            }
+        }
+    }
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onResume() {
         super.onResume()
         showLoading(true)
         performBillingCheck()
         displayDeveloperMessage()
+        updateDeltaVisuals(pandaStateManager.getCurrentState())
         updateUI()
         pandaStateManager.startMonitoring()
         val wakeWordFilter = IntentFilter(ACTION_WAKE_WORD_FAILED)

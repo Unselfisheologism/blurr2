@@ -1,147 +1,140 @@
-package com.blurr.voice.ui
+package com.blurr.voice.views
 
+import android.animation.ValueAnimator
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
 import android.util.AttributeSet
-import android.util.Log
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.core.content.ContextCompat
 import com.blurr.voice.R
-import com.blurr.voice.utilities.DeltaStateColorMapper
-import com.blurr.voice.utilities.DeltaSymbolAnimator
-import com.blurr.voice.utilities.PandaState
 
-/**
- * Custom view that displays the delta symbol with status text and handles
- * state-based color animations.
- */
 class DeltaSymbolView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
-) : LinearLayout(context, attrs, defStyleAttr) {
+    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
+) : View(context, attrs, defStyleAttr) {
 
-    companion object {
-        private const val TAG = "DeltaSymbolView"
+    private var glowAnimator: ValueAnimator? = null
+    // Convert 6dp to pixels for stroke width
+    private val strokeWidthPx = 6f * resources.displayMetrics.density
+
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        // 1. Fixed: Changed style from FILL to STROKE for an outline effect
+        style = Paint.Style.STROKE
+        strokeWidth = strokeWidthPx
+        color = ContextCompat.getColor(context, R.color.delta_idle)
+        strokeJoin = Paint.Join.ROUND // For smooth corners like in the CSS
     }
 
-    private val deltaImageView: ImageView
-    private val statusTextView: TextView
-    private val animator: DeltaSymbolAnimator
+    private val path = Path()
 
-    private var currentState: PandaState = PandaState.IDLE
+    // Variable to hold the current radius since it can't be read from the Paint object
+    private var currentGlowRadius = MIN_GLOW_RADIUS
+
+    // Constants for the new programmatic animation
+    private companion object {
+        const val ANIMATION_DURATION = 1500L // 1.5s is half a cycle, total 3s
+        const val MIN_GLOW_RADIUS = 10f
+        const val MAX_GLOW_RADIUS = 30f
+        const val START_SCALE = 1.0f
+        const val END_SCALE = 1.05f
+    }
 
     init {
-        orientation = VERTICAL
-        gravity = android.view.Gravity.CENTER_HORIZONTAL
+        // 2. Fixed: Enabled software layer, which is necessary for the shadow/glow effect
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
+    }
 
-        // Create and configure the delta symbol ImageView
-        deltaImageView = ImageView(context).apply {
-            layoutParams = LayoutParams(
-                resources.getDimensionPixelSize(R.dimen.delta_symbol_size),
-                resources.getDimensionPixelSize(R.dimen.delta_symbol_size)
-            )
-            setImageResource(R.drawable.ic_delta_large)
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        path.reset()
+        val width = w.toFloat()
+        val height = h.toFloat()
+
+        // Add padding to prevent the stroke and glow from being cut off at the edges
+        val padding = strokeWidthPx / 2f + MAX_GLOW_RADIUS
+        val topY = padding
+        val bottomY = height - padding
+        val leftX = padding
+        val rightX = width - padding
+        val midX = width / 2f
+
+        path.moveTo(midX, topY)
+        path.lineTo(leftX, bottomY)
+        path.lineTo(rightX, bottomY)
+        path.close()
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        // The paint object now contains the shadow layer (glow), so we just draw the path
+        canvas.drawPath(path, paint)
+    }
+
+    fun setColor(color: Int) {
+        paint.color = color
+        // If the animation is running, update the glow color as well
+        if (glowAnimator?.isRunning == true) {
+            // FIX: Use our own state variable 'currentGlowRadius' to get the radius.
+            paint.setShadowLayer(currentGlowRadius, 0f, 0f, color)
+        }
+        invalidate() // Redraw the view with the new color
+    }
+
+    /**
+     * Starts the glowing animation programmatically.
+     */
+    fun startGlow() {
+        if (glowAnimator?.isRunning == true) {
+            return // Avoid restarting the animation
         }
 
-        // Create and configure the status text TextView
-        statusTextView = TextView(context).apply {
-            layoutParams = LayoutParams(
-                LayoutParams.WRAP_CONTENT,
-                LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = resources.getDimensionPixelSize(R.dimen.status_text_margin_top)
+        // 3. Replaced XML animation with a more powerful ValueAnimator
+        glowAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = ANIMATION_DURATION
+            interpolator = AccelerateDecelerateInterpolator()
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+
+            addUpdateListener { animator ->
+                val fraction = animator.animatedValue as Float
+
+                // Animate the glow radius using setShadowLayer
+                val glowRadius = MIN_GLOW_RADIUS + (MAX_GLOW_RADIUS - MIN_GLOW_RADIUS) * fraction
+                currentGlowRadius = glowRadius // Store the current radius
+                paint.setShadowLayer(glowRadius, 0f, 0f, paint.color)
+
+                // Animate the scale
+                val scale = START_SCALE + (END_SCALE - START_SCALE) * fraction
+                scaleX = scale
+                scaleY = scale
+
+                invalidate() // Redraw the view on each animation frame
             }
-            textSize = 16f
-            setTextColor(ContextCompat.getColor(context, R.color.white))
-            gravity = android.view.Gravity.CENTER
-            text = DeltaStateColorMapper.getStatusText(PandaState.IDLE)
         }
-
-        // Add views to the layout
-        addView(deltaImageView)
-        addView(statusTextView)
-
-        // Initialize animator
-        animator = DeltaSymbolAnimator(context)
-
-        // Set initial state
-        setStateImmediate(PandaState.IDLE)
+        glowAnimator?.start()
     }
 
     /**
-     * Update the delta symbol to reflect the given state with animation
+     * Stops the glowing animation.
      */
-    fun setState(state: PandaState, animate: Boolean = true) {
-        if (state == currentState) {
-            Log.d(TAG, "State unchanged: $state")
-            return
-        }
+    fun stopGlow() {
+        glowAnimator?.cancel()
+        glowAnimator = null
 
-        Log.d(TAG, "Updating state from $currentState to $state")
-        currentState = state
-
-        // Update status text
-        statusTextView.text = DeltaStateColorMapper.getStatusText(state)
-
-        // Update color with or without animation
-        if (animate) {
-            animator.animateToState(deltaImageView, state)
-        } else {
-            animator.setStateColor(deltaImageView, state)
-        }
+        // Reset the view to its default state
+        paint.clearShadowLayer()
+        scaleX = 1.0f
+        scaleY = 1.0f
+        currentGlowRadius = MIN_GLOW_RADIUS // Reset the radius
+        invalidate()
     }
 
-    /**
-     * Set the state immediately without animation
-     */
-    fun setStateImmediate(state: PandaState) {
-        setState(state, animate = false)
-    }
-
-    /**
-     * Get the current state
-     */
-    fun getCurrentState(): PandaState = currentState
-
-    /**
-     * Get the current visual state information
-     */
-    fun getCurrentVisualState(): DeltaStateColorMapper.DeltaVisualState {
-        return DeltaStateColorMapper.getDeltaVisualState(context, currentState)
-    }
-
-    /**
-     * Set custom status text (overrides default state text)
-     */
-    fun setCustomStatusText(text: String) {
-        statusTextView.text = text
-    }
-
-    /**
-     * Reset status text to the default for current state
-     */
-    fun resetStatusText() {
-        statusTextView.text = DeltaStateColorMapper.getStatusText(currentState)
-    }
-
-    /**
-     * Clean up resources when the view is detached
-     */
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        animator.cleanup()
+        // Clean up animator to prevent memory leaks when the view is destroyed
+        stopGlow()
     }
-
-    /**
-     * Get the delta ImageView for direct access if needed
-     */
-    fun getDeltaImageView(): ImageView = deltaImageView
-
-    /**
-     * Get the status TextView for direct access if needed
-     */
-    fun getStatusTextView(): TextView = statusTextView
 }
+

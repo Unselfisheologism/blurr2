@@ -63,13 +63,12 @@
                 android:gravity="center"
                 android:orientation="vertical">
 
-                <ImageView
+                <com.blurr.voice.views.DeltaSymbolView
                     android:id="@+id/delta_symbol"
-                    android:layout_width="250dp"
-                    android:layout_height="250dp"
+                    android:layout_width="90dp"
+                    android:layout_height="78dp"
                     android:layout_gravity="center"
-                    android:contentDescription="Panda status indicator"
-                    android:src="@drawable/ic_delta_large" />
+                    android:layout_marginBottom="16dp"/>
 
                 <TextView
                     android:id="@+id/status_text"
