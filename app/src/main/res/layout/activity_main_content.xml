@@ -65,8 +65,8 @@
 
                 <ImageView
                     android:id="@+id/delta_symbol"
-                    android:layout_width="180dp"
-                    android:layout_height="180dp"
+                    android:layout_width="250dp"
+                    android:layout_height="250dp"
                     android:layout_gravity="center"
                     android:contentDescription="Panda status indicator"
                     android:src="@drawable/ic_delta_large" />
@@ -189,18 +189,85 @@
 
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/billing_status_textview"
+            <!-- Status Tags Section -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="8dp"
-                android:padding="8dp"
-                android:textColor="#4CAF50"
-                android:textSize="14sp"
-                android:visibility="gone"
-                tools:text="✓ Pro Subscription Active"
-                tools:visibility="visible" />
+                android:layout_marginBottom="16dp"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <!-- Pro Subscription Tag -->
+                <LinearLayout
+                    android:id="@+id/pro_subscription_tag"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/status_tag_background"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_marginEnd="4dp"
+                        android:src="@drawable/ic_check_circle"
+                        android:tint="#4CAF50" />
+
+                    <TextView
+                        android:id="@+id/billing_status_textview"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pro Active"
+                        android:textColor="#BDBDBD"
+                        android:textSize="10sp"
+                        tools:text="Pro Active"
+                        tools:visibility="visible" />
+
+                </LinearLayout>
+
+                <!-- Permissions Tag -->
+                <LinearLayout
+                    android:id="@+id/permissions_tag"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/status_tag_background"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_marginEnd="4dp"
+                        android:src="@drawable/ic_check_circle"
+                        android:tint="#4CAF50" />
+
+                    <TextView
+                        android:id="@+id/permissions_status_tag"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="All Permissions"
+                        android:textColor="#BDBDBD"
+                        android:textSize="10sp"
+                        tools:text="All Permissions"
+                        tools:visibility="visible" />
+
+                </LinearLayout>
+
+            </LinearLayout>
 
             <!-- Essential element: "Free tasks left" text - preserved with existing styling -->
             <TextView

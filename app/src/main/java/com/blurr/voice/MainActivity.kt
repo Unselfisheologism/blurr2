@@ -66,6 +66,9 @@ class MainActivity : BaseNavigationActivity() {
     private lateinit var loadingOverlay: View
     private lateinit var pandaStateManager: PandaStateManager
     private lateinit var stateChangeListener: (PandaState) -> Unit
+    private lateinit var proSubscriptionTag: View
+    private lateinit var permissionsTag: View
+    private lateinit var permissionsStatusTag: TextView
 
     private lateinit var root: View
     companion object {
@@ -166,6 +169,9 @@ class MainActivity : BaseNavigationActivity() {
         billingStatusTextView = findViewById(R.id.billing_status_textview)
         statusTextView = findViewById(R.id.status_text)
         loadingOverlay = findViewById(R.id.loading_overlay)
+        proSubscriptionTag = findViewById(R.id.pro_subscription_tag)
+        permissionsTag = findViewById(R.id.permissions_tag)
+        permissionsStatusTag = findViewById(R.id.permissions_status_tag)
         freemiumManager = FreemiumManager()
         updateStatusText(PandaState.IDLE)
         setupProBanner()
@@ -476,6 +482,7 @@ class MainActivity : BaseNavigationActivity() {
 
             } else {
                 tasksRemainingTextView.visibility = View.GONE
+                tasksRemainingTextView.visibility = View.GONE
                 increaseLimitsLink.visibility = View.VISIBLE
             }
         }
@@ -493,29 +500,21 @@ class MainActivity : BaseNavigationActivity() {
                 }
                 when {
                     !billingClientReady -> {
-                        billingStatusTextView.text = "Billing: Connecting..."
-                        billingStatusTextView.setTextColor(Color.parseColor("#FF9800")) // Orange
-                        billingStatusTextView.visibility = View.VISIBLE
+                        proSubscriptionTag.visibility = View.GONE
                         proBanner.visibility = View.VISIBLE
                     }
                     isSubscribed -> {
-                        billingStatusTextView.text = "✓ Pro Subscription Active"
-                        billingStatusTextView.setTextColor(Color.parseColor("#4CAF50")) // Green
-                        billingStatusTextView.visibility = View.VISIBLE
+                        proSubscriptionTag.visibility = View.VISIBLE
                         proBanner.visibility = View.GONE
                     }
                     else -> {
-                        billingStatusTextView.text = "Free Plan"
-                        billingStatusTextView.setTextColor(Color.parseColor("#757575")) // Gray
-                        billingStatusTextView.visibility = View.VISIBLE
+                        proSubscriptionTag.visibility = View.GONE
                         proBanner.visibility = View.VISIBLE
                     }
                 }
             } catch (e: Exception) {
                 Logger.e("MainActivity", "Error updating billing status", e)
-                billingStatusTextView.text = "Billing: Error"
-                billingStatusTextView.setTextColor(Color.parseColor("#F44336")) // Red
-                billingStatusTextView.visibility = View.VISIBLE
+                proSubscriptionTag.visibility = View.GONE
                 val proBanner = findViewById<View>(R.id.pro_upgrade_banner)
                 if (proBanner != null) {
                     proBanner.visibility = View.VISIBLE
@@ -531,11 +530,14 @@ class MainActivity : BaseNavigationActivity() {
         val allPermissionsGranted = permissionManager.areAllPermissionsGranted()
         if (allPermissionsGranted) {
             tvPermissionStatus.text = "All required permissions are granted."
+            tvPermissionStatus.visibility = View.GONE
             managePermissionsButton.visibility = View.GONE
             tvPermissionStatus.setTextColor(Color.parseColor("#4CAF50")) // Green
+            permissionsTag.visibility = View.VISIBLE
         } else {
             tvPermissionStatus.text = "Some permissions are missing. Tap below to manage."
             tvPermissionStatus.setTextColor(Color.parseColor("#F44336")) // Red
+            permissionsTag.visibility = View.GONE
         }
     }
 
