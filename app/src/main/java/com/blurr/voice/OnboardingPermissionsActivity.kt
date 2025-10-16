@@ -51,8 +51,8 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
     private var pendingRoleRequest = false
     private var isLaunchingRole = false
     private val accessibilityServiceChecker = AccessibilityServiceChecker(this)
+    private var hasScheduledAdvance = false
 
-    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_onboarding_stepper)
@@ -82,18 +82,24 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
 
         // If we returned from a settings screen or role sheet, reflect current state in UI
         if (currentStep < permissionSteps.size) {
-            updateUIForStep(currentStep)
+            val isGranted = permissionSteps[currentStep].isGranted()
+            if (isGranted) {
+                // Permission was granted while away, automatically move to next step after a short delay
+                Toast.makeText(this, "Permission granted!", Toast.LENGTH_SHORT).show()
+                scheduleAdvanceOnce()
+            } else {
+                updateUIForStep(currentStep)
+            }
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.Q)
     private fun setupPermissionSteps() {
         // Step 1: Accessibility Service (Special Intent)
         permissionSteps.add(
             PermissionStep(
                 titleRes = R.string.accessibility_permission_title,
                 descRes = R.string.accessibility_permission_full_desc,
-                iconRes = R.drawable.ic_accessibility,
+                iconRes = R.drawable.a11y_v2,
                 isGranted = { accessibilityServiceChecker.isAccessibilityServiceEnabled() },
                 // The action now shows the consent dialog instead of going directly to settings
                 action = { showAccessibilityConsentDialog() }
@@ -105,7 +111,7 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
             PermissionStep(
                 titleRes = R.string.microphone_permission_title,
                 descRes = R.string.microphone_permission_desc,
-                iconRes = R.drawable.ic_microphone,
+                iconRes = R.drawable.microphone,
                 isGranted = { ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED }
             ) {
                 requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -117,7 +123,7 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
             PermissionStep(
                 titleRes = R.string.overlay_permission_title,
                 descRes = R.string.overlay_permission_desc,
-                iconRes = R.drawable.ic_overlay,
+                iconRes = R.drawable.display,
                 isGranted = { Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this) }
             ) {
                 val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
@@ -131,7 +137,7 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
                 PermissionStep(
                     titleRes = R.string.notifications_permission_title,
                     descRes = R.string.notifications_permission_desc,
-                    iconRes = R.drawable.ic_overlay,
+                    iconRes = R.drawable.bell,
                     isGranted = { ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED }
                 ) {
                     requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -140,24 +146,23 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
         }
 
 
-        // In your setupPermissionSteps() function
-// ...
-// Step 5: Default Assistant Role (Special Intent)
-// Step 5: Default Assistant Role
-        permissionSteps.add(
-            PermissionStep(
-                titleRes = R.string.default_assistant_role_title,
-                descRes = R.string.default_assistant_role_desc,
-                iconRes = R.drawable.ic_launcher_foreground,
-                isGranted = {
-                    val rm = getSystemService(RoleManager::class.java)
-                    rm?.isRoleHeld(RoleManager.ROLE_ASSISTANT) == true
-                },
-                action = {
-                    startActivity(Intent(this, RoleRequestActivity::class.java))
-                }
+        // Step 5: Default Assistant Role (Special Intent) - Only for API 29+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            permissionSteps.add(
+                PermissionStep(
+                    titleRes = R.string.default_assistant_role_title,
+                    descRes = R.string.default_assistant_role_desc,
+                    iconRes = R.drawable.butler,
+                    isGranted = {
+                        val rm = getSystemService(RoleManager::class.java)
+                        rm?.isRoleHeld(RoleManager.ROLE_ASSISTANT) == true
+                    },
+                    action = {
+                        startActivity(Intent(this, RoleRequestActivity::class.java))
+                    }
+                )
             )
-        )
+        }
 
 // ...
         // Start the flow with the first step
@@ -187,25 +192,54 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(Color.GREEN)
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(Color.parseColor("#F44336"))
     }
-    @RequiresApi(Build.VERSION_CODES.Q)
     private fun setupLaunchers() {
         requestPermissionLauncher =
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-                updateUIForStep(currentStep)
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+                if (isGranted) {
+                    // Permission granted, automatically move to next step after a short delay
+                    Toast.makeText(this, "Permission granted!", Toast.LENGTH_SHORT).show()
+                    scheduleAdvanceOnce()
+                } else {
+                    updateUIForStep(currentStep)
+                }
             }
 
         requestOverlayLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-                updateUIForStep(currentStep)
+                val isGranted = permissionSteps[currentStep].isGranted()
+                if (isGranted) {
+                    // Permission granted, automatically move to next step after a short delay
+                    Toast.makeText(this, "Permission granted!", Toast.LENGTH_SHORT).show()
+                    scheduleAdvanceOnce()
+                } else {
+                    updateUIForStep(currentStep)
+                }
             }
 
         requestRoleLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
                 isLaunchingRole = false           // ✅ clear here only
-                val rm = getSystemService(RoleManager::class.java)
-                updateUIForStep(currentStep)      // reflect new state; no relaunch
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val rm = getSystemService(RoleManager::class.java)
+                    val isGranted = rm?.isRoleHeld(RoleManager.ROLE_ASSISTANT) == true
+                    if (isGranted) {
+                        // Role granted, automatically move to next step after a short delay
+                        Toast.makeText(this, "Default assistant role granted!", Toast.LENGTH_SHORT).show()
+                        scheduleAdvanceOnce()
+                    } else {
+                        updateUIForStep(currentStep)
+                    }
+                } else {
+                    updateUIForStep(currentStep)
+                }
             }
-
+    }
+    private fun scheduleAdvanceOnce(delayMs: Long = 1000) {
+        if (hasScheduledAdvance) return
+        hasScheduledAdvance = true
+        nextButton.postDelayed({
+            moveToNextStep()
+        }, delayMs)
     }
     private fun resetAssistantAskedFlag() {
         getSharedPreferences("assistant_prefs", Context.MODE_PRIVATE)
@@ -215,6 +249,12 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun openAssistantPicker() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            // Fallback for older Android versions
+            openAssistantSettingsFallback()
+            return
+        }
+
         val roleManager = getSystemService(RoleManager::class.java)
 
         if (roleManager?.isRoleHeld(RoleManager.ROLE_ASSISTANT) == true) {
@@ -260,24 +300,23 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
         }
 
         nextButton.setOnClickListener {
-            if (currentStep < permissionSteps.size - 1) {
-                currentStep++
-                updateUIForStep(currentStep)
-            } else {
-                // Last step, finish onboarding
-                finishOnboarding()
-            }
+            moveToNextStep()
         }
 
         skipButton.setOnClickListener {
             // Simply move to the next step, without granting
-            if (currentStep < permissionSteps.size - 1) {
-                currentStep++
-                updateUIForStep(currentStep)
-            } else {
-                // Last step, finish onboarding
-                finishOnboarding()
-            }
+            moveToNextStep()
+        }
+    }
+
+    private fun moveToNextStep() {
+        if (currentStep < permissionSteps.size - 1) {
+            hasScheduledAdvance = false
+            currentStep++
+            updateUIForStep(currentStep)
+        } else {
+            // Last step, finish onboarding
+            finishOnboarding()
         }
     }
 
@@ -308,32 +347,26 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
 
             // Make the next button visible to proceed.
             nextButton.visibility = View.VISIBLE
-            nextButton.text = "Next"
+            
+            // Handle the final step
+            if (stepIndex == permissionSteps.size - 1) {
+                nextButton.text = "Finish"
+            } else {
+                nextButton.text = "Next"
+            }
 
         } else {
             // Permission is not granted. Show the grant and skip buttons.
             grantButton.visibility = View.VISIBLE
             nextButton.visibility = View.GONE
             skipButton.visibility = View.VISIBLE
-            // Set the default text for the grant button
-            grantButton.text = getString(R.string.grant_permission_button)
-        }
-
-        // Handle the final step separately after the general visibility logic
-        if (stepIndex == permissionSteps.size - 1) {
-            // Specific UI for the Default Assistant Role step
-            if (!isGranted) {
-                // If the role is not granted, show a dedicated button to open settings
-                grantButton.visibility = View.VISIBLE
-                grantButton.text = "Open Assistant Settings" // <-- This is the new, specific text
-                nextButton.visibility = View.GONE
-                skipButton.visibility = View.VISIBLE
+            
+            // Set the appropriate text for the grant button based on the step
+            if (stepIndex == permissionSteps.size - 1) {
+                // Default Assistant Role step
+                grantButton.text = "Open Assistant Settings"
             } else {
-                // If it is granted, show the finish button
-                nextButton.text = getString(R.string.finish_onboarding_button)
-                nextButton.visibility = View.VISIBLE
-                skipButton.visibility = View.GONE
-                grantButton.visibility = View.GONE
+                grantButton.text = getString(R.string.grant_permission_button)
             }
         }
     }

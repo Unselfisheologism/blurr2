@@ -35,9 +35,9 @@ import kotlin.coroutines.cancellation.CancellationException
 class SettingsActivity : BaseNavigationActivity() {
 
     private lateinit var ttsVoicePicker: NumberPicker
-    private lateinit var backButton: Button
     private lateinit var permissionsInfoButton: TextView
     private lateinit var batteryOptimizationHelpButton: TextView
+    private lateinit var appVersionText: TextView
     private lateinit var editUserName: android.widget.EditText
     private lateinit var editUserEmail: android.widget.EditText
     private lateinit var editWakeWordKey: android.widget.EditText
@@ -100,8 +100,8 @@ class SettingsActivity : BaseNavigationActivity() {
 
     private fun setupUI() {
         ttsVoicePicker = findViewById(R.id.ttsVoicePicker)
-        backButton = findViewById(R.id.id_backButtonSettings)
         permissionsInfoButton = findViewById(R.id.permissionsInfoButton)
+        appVersionText = findViewById(R.id.appVersionText)
         batteryOptimizationHelpButton = findViewById(R.id.batteryOptimizationHelpButton)
       
         editWakeWordKey = findViewById(R.id.editWakeWordKey)
@@ -122,6 +122,10 @@ class SettingsActivity : BaseNavigationActivity() {
             editUserName.setText(pm.getName() ?: "")
             editUserEmail.setText(pm.getEmail() ?: "")
         }
+
+        // Show app version
+        val versionName = BuildConfig.VERSION_NAME
+        appVersionText.text = "Version $versionName"
     }
 
     private fun setupVoicePicker() {
@@ -133,7 +137,6 @@ class SettingsActivity : BaseNavigationActivity() {
     }
 
     private fun setupClickListeners() {
-        backButton.setOnClickListener { finish() }
         permissionsInfoButton.setOnClickListener {
             val intent = Intent(this, PermissionsActivity::class.java)
             startActivity(intent)
