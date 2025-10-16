@@ -14,6 +14,7 @@
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorPrimary"
         app:title="Your Triggers"
+        android:fontFamily="@font/playfair_display"
         app:titleTextColor="@color/white" />
 
     <LinearLayout
@@ -35,8 +36,8 @@
             android:id="@+id/triggers_not_working_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Triggers not working for you?"
-            android:textColor="@color/button_blue"
+            android:text="@string/triggers_not_working_for_you"
+            android:textColor="@color/accent"
             android:layout_marginTop="8dp"
             android:clickable="true"
             android:focusable="true" />
@@ -60,6 +61,7 @@
         android:layout_margin="16dp"
         android:text="Add Trigger"
         app:icon="@drawable/ic_add"
+        android:fontFamily="@font/oxanium"
         app:iconTint="@color/white"
         android:textColor="@color/white"
         app:backgroundTint="@color/button_blue"

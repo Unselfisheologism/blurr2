@@ -127,10 +127,13 @@ class ConversationalAgentService : Service() {
         sttErrorAttempts = 0 // Reset STT error attempts counter
         usedMemories.clear() // Clear used memories for new conversation
         hasHeardFirstUtterance = false // Reset first utterance flag
-        visualFeedbackManager.showTtsWave()
-        showInputBoxIfNeeded()
+
         visualFeedbackManager.showSpeakingOverlay() // <-- ADD THIS LINE
-        
+        visualFeedbackManager.showTtsWave()
+
+        showInputBoxIfNeeded()
+        visualFeedbackManager.showSmallDeltaGlow()
+
         // Start state monitoring
         pandaStateManager.startMonitoring()
 
@@ -1338,7 +1341,7 @@ class ConversationalAgentService : Service() {
         
         // Stop state monitoring
         pandaStateManager.stopMonitoring()
-        
+        visualFeedbackManager.hideSmallDeltaGlow()
         visualFeedbackManager.hideSpeakingOverlay() // <-- ADD THIS LINE
         // USE the new manager to hide the wave and transcription view
         visualFeedbackManager.hideTtsWave()

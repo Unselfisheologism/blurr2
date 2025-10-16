@@ -90,7 +90,7 @@
     <string name="save_settings">Save Settings</string>
     <string name="settings_saved">Settings saved successfully</string>
     <string name="testing_voice">Testing voice…</string>
-    <string name="why_permissions_needed">Why are these permissions needed?</string>
+    <string name="why_permissions_needed"><u>Why are these permissions needed?</u></string>
     <string name="permissions_explained_title">Permissions Explained</string>
     <string name="accessibility_permission_title">Accessibility Service</string>
     <string name="accessibility_permission_desc">🤖 Enable Panda AI to control your phone through voice commands. This permission allows reading screen content and performing actions for hands-free device automation and improved accessibility.</string>
@@ -111,7 +111,7 @@
 
     
     <!-- Battery optimization help -->
-    <string name="panda_not_working">Panda not working on your phone?</string>
+    <string name="panda_not_working"><u>Panda not working on your phone?</u></string>
     <string name="battery_optimization_title">Battery Optimization Issues</string>
     <string name="battery_optimization_message">If Panda is not working properly, this might be due to intense battery optimization by your device manufacturer.\n\nManufacturers like Samsung, Huawei, OnePlus, Xiaomi, and others often add aggressive battery optimizations that can break Panda\'s functionality.\n\nTo fix this, you need to disable battery optimizations specifically for Panda in your device settings.</string>
     <string name="learn_how">Learn How</string>
@@ -119,4 +119,6 @@
 
     <string name="microphone_permission_not_granted">Microphone permission not granted</string>
     <string name="accessibility_permission_needed_for_task">Hey, accessibility permission is needed to execute any task. I know you might have doubt giving this permission to me, but my code is open source, so can always check it out if you have doubts.</string>
+    <string name="get_your_free_accesskey_from_the_picovoice_console"><u>Get your free AccessKey from the Picovoice Console</u></string>
+    <string name="triggers_not_working_for_you"><u>Triggers not working for you?</u>u></string>
 </resources>

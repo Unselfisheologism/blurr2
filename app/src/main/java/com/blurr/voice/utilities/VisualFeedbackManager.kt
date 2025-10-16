@@ -23,6 +23,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.blurr.voice.AudioWaveView
 import com.blurr.voice.R
+import com.blurr.voice.ui.SmallDeltaGlowView
 
 class VisualFeedbackManager private constructor(private val context: Context) {
 
@@ -35,8 +36,21 @@ class VisualFeedbackManager private constructor(private val context: Context) {
     private var transcriptionView: TextView? = null
     private var inputBoxView: View? = null
     private var thinkingIndicatorView: View? = null
-
+    private var smallDeltaGlowView: SmallDeltaGlowView? = null
+    private val pandaStateManager by lazy { PandaStateManager.getInstance(context) }
+    // Define the listener that will react to state changes
+    private val stateChangeListener: (PandaState) -> Unit
     private var speakingOverlay: View? = null
+
+    init {
+        stateChangeListener = { newState ->
+            // This code will run every time the PandaState changes
+            updateSmallDeltaVisuals(newState)
+        }
+        // Register the listener with the state manager
+        pandaStateManager.addStateChangeListener(stateChangeListener)
+
+    }
 
     companion object {
         private const val TAG = "VisualFeedbackManager"
@@ -133,9 +147,8 @@ class VisualFeedbackManager private constructor(private val context: Context) {
             if (speakingOverlay != null) return@post
 
             speakingOverlay = View(context).apply {
-                // CHANGED: Increased opacity from 80 (50%) to E6 (90%) for a more solid feel.
-                // You can adjust this hex value (E6) to your liking.
-                setBackgroundColor(0x80FFFFFF.toInt())
+                // Reduced opacity from 80 (50%) to 40 (25%) for a more subtle overlay
+                setBackgroundColor(0x40FFFFFF.toInt())
             }
 
             val params = WindowManager.LayoutParams(
@@ -412,6 +425,76 @@ class VisualFeedbackManager private constructor(private val context: Context) {
                 }
             }
             thinkingIndicatorView = null
+        }
+    }
+
+    fun showSmallDeltaGlow() {
+        mainHandler.post {
+            if (smallDeltaGlowView?.isAttachedToWindow == true) return@post
+
+            smallDeltaGlowView = SmallDeltaGlowView(context)
+            val sizeInDp = 64
+            val sizeInPixels = (sizeInDp * context.resources.displayMetrics.density).toInt()
+            val marginBottomInDp = 48
+            val marginBottomInPixels = (marginBottomInDp * context.resources.displayMetrics.density).toInt()
+
+            val params = WindowManager.LayoutParams(
+                sizeInPixels, sizeInPixels,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                y = marginBottomInPixels
+            }
+
+            try {
+                windowManager.addView(smallDeltaGlowView, params)
+                // Set the initial color and glow based on the *current* state
+                updateSmallDeltaVisuals(pandaStateManager.getCurrentState())
+                Log.d(TAG, "Small delta glow view added.")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error adding small delta glow view", e)
+                smallDeltaGlowView = null
+            }
+        }
+    }
+
+    fun hideSmallDeltaGlow() {
+        mainHandler.post {
+            smallDeltaGlowView?.let {
+                it.stopGlow()
+                if (it.isAttachedToWindow) {
+                    try {
+                        windowManager.removeView(it)
+                        Log.d(TAG, "Small delta glow view removed.")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error removing small delta glow view", e)
+                    }
+                }
+            }
+            smallDeltaGlowView = null
+        }
+    }
+
+    /**
+     * A new private method to update the small delta's appearance based on the app state.
+     */
+    private fun updateSmallDeltaVisuals(state: PandaState) {
+        // Run on the main thread and only if the view exists
+        mainHandler.post {
+            smallDeltaGlowView?.let { view ->
+                // 1. Get the color for the new state
+                val color = DeltaStateColorMapper.getColor(context, state)
+                view.setColor(color)
+
+                // 2. Start or stop the glow based on whether the state is "active"
+                if (DeltaStateColorMapper.isActiveState(state)) {
+                    view.startGlow()
+                } else {
+                    view.stopGlow()
+                }
+            }
         }
     }
 

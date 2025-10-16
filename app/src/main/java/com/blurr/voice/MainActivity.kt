@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -56,7 +57,7 @@ class MainActivity : BaseNavigationActivity() {
     private lateinit var permissionManager: PermissionManager
     private lateinit var wakeWordManager: WakeWordManager
     private lateinit var auth: FirebaseAuth
-    private lateinit var tasksRemainingTextView: TextView
+    private lateinit var tasksLeftTag: View
     private lateinit var freemiumManager: FreemiumManager
     private lateinit var wakeWordHelpLink: TextView
     private lateinit var increaseLimitsLink: TextView
@@ -70,6 +71,7 @@ class MainActivity : BaseNavigationActivity() {
     private lateinit var proSubscriptionTag: View
     private lateinit var permissionsTag: View
     private lateinit var permissionsStatusTag: TextView
+    private lateinit var tasksLeftText: TextView
     private lateinit var deltaSymbol: DeltaSymbolView
 
 
@@ -163,12 +165,10 @@ class MainActivity : BaseNavigationActivity() {
         permissionManager.initializePermissionLauncher()
 
         managePermissionsButton = findViewById(R.id.btn_manage_permissions)
-
-
+        tasksLeftText = findViewById(R.id.tasks_left_tag_text)
+        tasksLeftTag = findViewById(R.id.tasks_left_tag)
         tvPermissionStatus = findViewById(R.id.tv_permission_status)
         wakeWordHelpLink = findViewById(R.id.wakeWordHelpLink)
-
-        tasksRemainingTextView = findViewById(R.id.tasks_remaining_textview)
         billingStatusTextView = findViewById(R.id.billing_status_textview)
         statusTextView = findViewById(R.id.status_text)
         loadingOverlay = findViewById(R.id.loading_overlay)
@@ -295,7 +295,7 @@ class MainActivity : BaseNavigationActivity() {
         // Add click listener to delta symbol
         deltaSymbol.setOnClickListener {
             // Only start conversational agent if in ready/idle state
-            if (pandaStateManager.getCurrentState() == PandaState.IDLE) {
+            if (pandaStateManager.getCurrentState() == PandaState.IDLE || pandaStateManager.getCurrentState() == PandaState.ERROR) {
                 startConversationalAgent()
             }
         }
@@ -489,30 +489,12 @@ class MainActivity : BaseNavigationActivity() {
     }
     private fun updateTaskCounter() {
         lifecycleScope.launch {
-
-            val tasksLeft = freemiumManager.getTasksRemaining()
-
-            if (tasksLeft == Long.MAX_VALUE) {
-                tasksRemainingTextView.visibility = View.GONE
-
-            } else if (tasksLeft != null && tasksLeft >= 0) {
-                if (tasksLeft <= 3) {
-                    if (tasksLeft > 0) {
-                        tasksRemainingTextView.text = "You have $tasksLeft free tasks remaining today."
-                    } else {
-                        tasksRemainingTextView.text = "You have 0 free tasks left for today."
-                    }
-                    tasksRemainingTextView.visibility = View.VISIBLE
-                } else {
-                    tasksRemainingTextView.visibility = View.GONE
-                }
-                increaseLimitsLink.visibility = View.VISIBLE
-
-            } else {
-                tasksRemainingTextView.visibility = View.GONE
-                tasksRemainingTextView.visibility = View.GONE
-                increaseLimitsLink.visibility = View.VISIBLE
+            val isUserSub = freemiumManager.isUserSubscribed()
+            if(isUserSub){
+                tasksLeftTag.visibility = View.GONE
             }
+            val tasksLeft = freemiumManager.getTasksRemaining()
+            tasksLeftText.text = "$tasksLeft tasks left"
         }
     }
 

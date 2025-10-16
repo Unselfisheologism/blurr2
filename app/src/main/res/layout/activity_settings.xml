@@ -21,16 +21,6 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp">
 
-            <Button
-                android:id="@+id/id_backButtonSettings"
-                style="@style/Widget.AppCompat.Button.Borderless"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:layout_centerVertical="true"
-                android:text="@string/back"
-                android:textColor="@android:color/white" />
-
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -39,6 +29,7 @@
                 android:paddingTop="50dp"
                 android:textColor="@color/white"
                 android:textSize="20sp"
+                android:fontFamily="@font/oxanium"
                 android:textStyle="bold" />
         </RelativeLayout>
         <TextView
@@ -51,8 +42,9 @@
             android:clickable="true"
             android:focusable="true"
             android:padding="8dp"
+            android:fontFamily="@font/playfair_display"
             android:text="@string/panda_not_working"
-            android:textColor="#5880F7"
+            android:textColor="@color/accent"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -70,6 +62,7 @@
                 android:text="Voice &amp; Speech"
                 android:textColor="@color/white"
                 android:textSize="18sp"
+                android:fontFamily="@font/playfair_display"
                 android:textStyle="bold" />
 
             <TextView
@@ -95,6 +88,7 @@
                 <NumberPicker
                     android:id="@+id/ttsVoicePicker"
                     android:layout_width="match_parent"
+                    android:fontFamily="@font/oxanium"
                     android:layout_height="match_parent"
                     android:theme="@style/AppTheme.NumberPicker" />
 
@@ -102,54 +96,6 @@
 
 
         </LinearLayout>
-
-<!--        <LinearLayout-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:layout_marginTop="16dp"-->
-<!--            android:background="@drawable/rounded_background"-->
-<!--            android:orientation="vertical"-->
-<!--            android:padding="16dp">-->
-
-<!--            <TextView-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:text="Wake Word Service Key"-->
-<!--                android:textColor="@color/white"-->
-<!--                android:textSize="18sp"-->
-<!--                android:textStyle="bold" />-->
-
-<!--            <TextView-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_marginTop="4dp"-->
-<!--                android:text="If you have your own Picovoice AccessKey, you can paste it here."-->
-<!--                android:textColor="#888888"-->
-<!--                android:textSize="12sp" />-->
-
-<!--            <EditText-->
-<!--                android:id="@+id/editWakeWordKey"-->
-<!--                android:layout_width="match_parent"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_marginTop="12dp"-->
-<!--                android:background="@drawable/edit_text_border"-->
-<!--                android:hint="Paste your key here"-->
-<!--                android:inputType="text"-->
-<!--                android:padding="12dp"-->
-<!--                android:textColor="#CECECE"-->
-<!--                android:textColorHint="#888888" />-->
-
-<!--            <Button-->
-<!--                android:id="@+id/buttonSaveWakeWordKey"-->
-<!--                android:layout_width="wrap_content"-->
-<!--                android:layout_height="wrap_content"-->
-<!--                android:layout_gravity="end"-->
-<!--                android:layout_marginTop="12dp"-->
-<!--                android:text="Save Key"-->
-<!--                android:background="@drawable/btn_with_border"-->
-<!--                android:textColor="@android:color/white" />-->
-
-<!--        </LinearLayout>-->
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -165,6 +111,8 @@
                 android:text="Enable 'Hey Panda!'"
                 android:textColor="@color/white"
                 android:textSize="18sp"
+                android:fontFamily="@font/playfair_display"
+
                 android:textStyle="bold" />
 
             <TextView
@@ -183,16 +131,20 @@
                 android:background="?attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
-                android:text="Get your free AccessKey from the Picovoice Console"
-                android:textColor="#5880F7"
+                android:fontFamily="@font/oxanium"
+                android:text="@string/get_your_free_accesskey_from_the_picovoice_console"
+                android:textColor="@color/accent"
                 android:textSize="12sp" />
             <EditText
                 android:id="@+id/editWakeWordKey"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:fontFamily="@font/oxanium"
+
                 android:layout_marginTop="12dp"
                 android:background="@drawable/edit_text_border"
                 android:hint="Paste your key here"
+
                 android:inputType="text"
                 android:padding="12dp"
                 android:textColor="#CECECE"
@@ -211,7 +163,7 @@
                 android:gravity="center"
                 android:padding="12dp"
                 android:text="@string/enable_wake_word"
-                android:textColor="@android:color/white"
+                android:textColor="@android:color/black"
                 android:textSize="16sp" />
 
         </LinearLayout>
@@ -230,6 +182,7 @@
                 android:text="Profile"
                 android:textColor="@color/white"
                 android:textSize="18sp"
+                android:fontFamily="@font/playfair_display"
                 android:textStyle="bold" />
 
             <EditText
@@ -237,6 +190,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
+                android:fontFamily="@font/oxanium"
+
                 android:background="@drawable/rounded_background"
                 android:hint="Your name"
                 android:inputType="textPersonName"
@@ -285,9 +240,10 @@
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
+            android:fontFamily="@font/playfair_display"
             android:padding="8dp"
             android:text="@string/why_permissions_needed"
-            android:textColor="#5880F7"
+            android:textColor="@color/accent"
             android:textSize="16sp"
             android:textStyle="bold" />
 
