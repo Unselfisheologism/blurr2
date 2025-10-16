@@ -767,17 +767,26 @@ class ScreenInteractionService : AccessibilityService() {
         return Pair(pixelsAbove, pixelsBelow)
     }
 
-    @RequiresApi(Build.VERSION_CODES.R) // R is required for getCurrentWindowMetrics
     private fun getScreenDimensions(): Pair<Int, Int> {
         val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        val metrics = windowManager.currentWindowMetrics
-        val width = metrics.bounds.width()
-        val height = metrics.bounds.height()
-//        Log.d("ScreenInteractionService", "Fetched screen dimensions: ${width}x${height}")
-        return Pair(width, height)
+        
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Use modern API for Android 11+ (API 30+)
+            val metrics = windowManager.currentWindowMetrics
+            val width = metrics.bounds.width()
+            val height = metrics.bounds.height()
+            Pair(width, height)
+        } else {
+            // Use legacy API for older Android versions (API 24-29)
+            val display = windowManager.defaultDisplay
+            val displayMetrics = android.util.DisplayMetrics()
+            display.getRealMetrics(displayMetrics)
+            val width = displayMetrics.widthPixels
+            val height = displayMetrics.heightPixels
+            Pair(width, height)
+        }
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
     suspend fun getScreenAnalysisData(): RawScreenData {
         val (screenWidth, screenHeight) = getScreenDimensions()
         val maxRetries = 5

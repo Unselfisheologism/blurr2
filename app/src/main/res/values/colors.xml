@@ -24,4 +24,12 @@
     <color name="surface">#FFFFFF</color>
     <color name="text_primary">#000000</color>
     <color name="text_secondary">#666666</color>
+    <color name="orange">#FFBC87</color>
+
+    <!-- Delta symbol state colors -->
+    <color name="delta_idle">#FFFFFF</color>        <!-- White - ready state -->
+    <color name="delta_listening">#FF9800</color>   <!-- Orange/Amber - listening -->
+    <color name="delta_processing">#2196F3</color>  <!-- Blue - thinking/processing -->
+    <color name="delta_speaking">#4CAF50</color>    <!-- Green - speaking -->
+    <color name="delta_error">#F44336</color>       <!-- Red - error state -->
 </resources>

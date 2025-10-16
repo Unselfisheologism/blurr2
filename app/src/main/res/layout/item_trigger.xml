@@ -23,6 +23,7 @@
             android:textAppearance="@style/TextAppearance.AppCompat.Large"
             android:textColor="#CECECE"
             android:textSize="18sp"
+            android:fontFamily="@font/oxanium"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/triggerEnabledSwitch"

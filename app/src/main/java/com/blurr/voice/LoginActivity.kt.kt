@@ -7,7 +7,9 @@ import android.view.View
 import android.widget.Button // Changed from SignInButton
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.EditText
 import android.widget.Toast
+import android.graphics.Color
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,9 +22,12 @@ import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.api.identity.SignInClient
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.SignInButton
 import com.google.firebase.Firebase
+import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.actionCodeSettings
 import com.google.firebase.auth.auth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import kotlinx.coroutines.launch
@@ -32,7 +37,9 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var oneTapClient: SignInClient
     private lateinit var signInRequest: BeginSignInRequest
     private lateinit var firebaseAuth: FirebaseAuth
-    private lateinit var signInButton: Button // Changed from SignInButton
+    private lateinit var signInButton: SignInButton // Using Google's SignInButton
+    private lateinit var emailField: EditText
+    private lateinit var emailSendLinkButton: Button
     private lateinit var progressBar: ProgressBar
     private lateinit var loadingText: TextView
 
@@ -44,6 +51,12 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_onboarding)
 
         signInButton = findViewById(R.id.googleSignInButton)
+        // Customize Google Sign-In button appearance and text
+        signInButton.setSize(SignInButton.SIZE_WIDE)
+        signInButton.setColorScheme(SignInButton.COLOR_LIGHT)
+        customizeGoogleSignInButton(signInButton)
+        emailField = findViewById(R.id.emailInput)
+        emailSendLinkButton = findViewById(R.id.emailSendLinkButton)
         progressBar = findViewById(R.id.progressBar)
         loadingText = findViewById(R.id.loadingText)
         firebaseAuth = Firebase.auth
@@ -81,6 +94,7 @@ class LoginActivity : AppCompatActivity() {
                         Toast.makeText(this, "Google Sign-In failed.", Toast.LENGTH_SHORT).show()
                         progressBar.visibility = View.GONE
                         loadingText.visibility = View.GONE
+                        signInButton.isEnabled = true
                     }
                 } catch (e: ApiException) {
                     Log.w("LoginActivity", "Google sign in failed", e)
@@ -89,11 +103,13 @@ class LoginActivity : AppCompatActivity() {
                     Toast.makeText(this, "Google Sign-In failed.", Toast.LENGTH_SHORT).show()
                     progressBar.visibility = View.GONE
                     loadingText.visibility = View.GONE
+                    signInButton.isEnabled = true
                 }
             } else {
                 // User cancelled or there was an error - hide progress bar
                 progressBar.visibility = View.GONE
                 loadingText.visibility = View.GONE
+                signInButton.isEnabled = true
             }
         }
 
@@ -101,11 +117,34 @@ class LoginActivity : AppCompatActivity() {
         signInButton.setOnClickListener {
             signIn()
         }
+
+        emailSendLinkButton.setOnClickListener {
+            val email = emailField.text?.toString()?.trim()
+            if (!email.isNullOrEmpty()) {
+                sendSignInLink(email)
+            } else {
+                Toast.makeText(this, "Enter your email", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun customizeGoogleSignInButton(button: SignInButton) {
+        // Replace the text and color inside Google's SignInButton
+        // Note: SignInButton contains a TextView as its first child
+        (0 until button.childCount)
+            .map { button.getChildAt(it) }
+            .firstOrNull { it is TextView }
+            ?.let { tv ->
+                val textView = tv as TextView
+                textView.text = "Continue with Google Login"
+                textView.setTextColor(Color.GRAY)
+            }
     }
 
     private fun signIn() {
         progressBar.visibility = View.VISIBLE
         loadingText.visibility = View.VISIBLE
+        signInButton.isEnabled = false
         
         Log.d("LoginActivity", "Starting Google Sign-In process")
         Log.d("LoginActivity", "Using web client ID: ${getString(R.string.default_web_client_id)}")
@@ -126,6 +165,7 @@ class LoginActivity : AppCompatActivity() {
                     Toast.makeText(this, "Sign-in UI failed to start: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                     progressBar.visibility = View.GONE
                     loadingText.visibility = View.GONE
+                    signInButton.isEnabled = true
                 }
             }
             .addOnFailureListener(this) { e ->
@@ -135,7 +175,82 @@ class LoginActivity : AppCompatActivity() {
                 Toast.makeText(this, "Sign-in failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
                 progressBar.visibility = View.GONE
                 loadingText.visibility = View.GONE
+                signInButton.isEnabled = true
             }
+    }
+
+    private fun sendSignInLink(email: String) {
+        // Configure action code settings
+        val actionCodeSettings = ActionCodeSettings.newBuilder()
+            .setAndroidPackageName(packageName, true, null)
+            .setHandleCodeInApp(true)
+            .setUrl("https://black-radius-341415.firebaseapp.com/__/auth/action")
+            .build()
+        Firebase.auth.sendSignInLinkToEmail(email, actionCodeSettings)
+            .addOnSuccessListener {
+                Log.d("EmailLink", "Email sent OK to $email")
+            }
+            .addOnFailureListener { e ->
+                Log.e("EmailLink", "Failed to send email", e)
+            }
+
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent?.let { handleEmailLinkIntent(it) }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        handleEmailLinkIntent(intent)
+    }
+
+    private fun handleEmailLinkIntent(intent: Intent) {
+        val auth = Firebase.auth
+        val data = intent.data?.toString() ?: return
+        if (!auth.isSignInWithEmailLink(data)) return
+
+        val storedEmail = getSharedPreferences("email_link", MODE_PRIVATE)
+            .getString("pending_email", null)
+        val email = storedEmail ?: return
+
+        progressBar.visibility = View.VISIBLE
+        loadingText.visibility = View.VISIBLE
+
+        auth.signInWithEmailLink(email, data).addOnCompleteListener { task ->
+            progressBar.visibility = View.GONE
+            loadingText.visibility = View.GONE
+            if (task.isSuccessful) {
+                getSharedPreferences("email_link", MODE_PRIVATE)
+                    .edit().remove("pending_email").apply()
+                startPostAuthFlow(task.result?.additionalUserInfo?.isNewUser ?: false)
+            } else {
+                Toast.makeText(this, "Email link sign-in failed: ${task.exception?.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun startPostAuthFlow(isNewUser: Boolean) {
+        val profileManager = UserProfileManager(this)
+        val user = firebaseAuth.currentUser
+        val name = user?.displayName ?: "Unknown"
+        val email = user?.email ?: "unknown"
+        profileManager.saveProfile(name, email)
+
+        lifecycleScope.launch {
+            val onboardingManager = OnboardingManager(this@LoginActivity)
+            if (isNewUser) {
+                val freemiumManager = FreemiumManager()
+                freemiumManager.provisionUserIfNeeded()
+            }
+            if (onboardingManager.isOnboardingCompleted()) {
+                startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+            } else {
+                startActivity(Intent(this@LoginActivity, OnboardingPermissionsActivity::class.java))
+            }
+            finish()
+        }
     }
 
     private fun firebaseAuthWithGoogle(idToken: String) {
@@ -145,6 +260,7 @@ class LoginActivity : AppCompatActivity() {
                 // Hide progress bar and loading text when Firebase authentication completes
                 progressBar.visibility = View.GONE
                 loadingText.visibility = View.GONE
+                signInButton.isEnabled = true
                 
                 if (task.isSuccessful) {
                     val isNewUser = task.result?.additionalUserInfo?.isNewUser ?: false

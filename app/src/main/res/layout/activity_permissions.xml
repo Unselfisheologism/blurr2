@@ -69,16 +69,21 @@
                 android:layout_marginTop="12dp"
                 android:text="@string/accessibility_permission_details" />
 
-            <Button
-                android:id="@+id/grantAccessibilityButton"
-                style="@style/Widget.AppCompat.Button.Colored"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/rounded_button_bg"
-                android:text="Grant Accessibility Permission"
-                android:textColor="@android:color/white"
-                android:visibility="gone" />
+        <TextView
+            android:id="@+id/grantAccessibilityButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/rounded_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:padding="12dp"
+            android:textColor="@android:color/black"
+            android:textSize="16sp"
+            android:visibility="gone"
+            android:text="@string/grant_accessibility_permission"
+            />
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
@@ -120,16 +125,21 @@
                 style="@style/PermissionDescription"
                 android:text="@string/default_assistant_role_desc" />
 
-            <Button
+            <TextView
                 android:id="@+id/grantAssistantButton"
-                style="@style/Widget.AppCompat.Button.Colored"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:background="@drawable/rounded_button_bg"
+                android:background="@drawable/rounded_button"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:padding="12dp"
+                android:textColor="@android:color/black"
+                android:textSize="16sp"
+                android:visibility="gone"
                 android:text="@string/grant_default_assistant_permission_button"
-                android:textColor="@android:color/white"
-                android:visibility="gone" />
+             />
         </LinearLayout>
 
         <LinearLayout
@@ -172,16 +182,22 @@
                 style="@style/PermissionDescription"
                 android:text="@string/microphone_permission_desc" />
 
-            <Button
+            <TextView
                 android:id="@+id/grantMicrophoneButton"
-                style="@style/Widget.AppCompat.Button.Colored"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:background="@drawable/rounded_button_bg"
+                android:background="@drawable/rounded_button"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:padding="12dp"
+                android:textColor="@android:color/black"
+                android:textSize="16sp"
+                android:visibility="gone"
+
                 android:text="Grant Microphone Permission"
-                android:textColor="@android:color/white"
-                android:visibility="gone" />
+/>
         </LinearLayout>
 
         <LinearLayout
@@ -224,15 +240,19 @@
                 style="@style/PermissionDescription"
                 android:text="@string/overlay_permission_desc" />
 
-            <Button
+            <TextView
                 android:id="@+id/grantOverlayButton"
-                style="@style/Widget.AppCompat.Button.Colored"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:background="@drawable/rounded_button_bg"
+                android:background="@drawable/rounded_button"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:padding="12dp"
+                android:textSize="16sp"
                 android:text="Grant Overlay Permission"
-                android:textColor="@android:color/white"
+                android:textColor="@android:color/black"
                 android:visibility="gone" />
         </LinearLayout>
 
