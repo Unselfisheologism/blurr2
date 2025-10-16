@@ -555,7 +555,6 @@ class ConversationalAgentService : Service() {
                         if(freemiumManager.canPerformTask()){
                             Log.d("ConvAgent", "Allowance check passed. Proceeding with task.")
 
-                            freemiumManager.decrementTaskCount()
                             if (clarificationAttempts < maxClarificationAttempts) {
                                 val (needsClarification, questions) = checkIfClarificationNeeded(
                                     decision.instruction

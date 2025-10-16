@@ -5,8 +5,10 @@ import android.content.Context
 import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -24,6 +26,10 @@ import androidx.core.view.WindowInsetsCompat
 import com.blurr.voice.AudioWaveView
 import com.blurr.voice.R
 import com.blurr.voice.ui.SmallDeltaGlowView
+import com.blurr.voice.utilities.PandaState
+import com.blurr.voice.utilities.PandaStateManager
+import com.blurr.voice.utilities.TTSManager
+import com.blurr.voice.utilities.TtsVisualizer
 
 class VisualFeedbackManager private constructor(private val context: Context) {
 
@@ -38,16 +44,13 @@ class VisualFeedbackManager private constructor(private val context: Context) {
     private var thinkingIndicatorView: View? = null
     private var smallDeltaGlowView: SmallDeltaGlowView? = null
     private val pandaStateManager by lazy { PandaStateManager.getInstance(context) }
-    // Define the listener that will react to state changes
     private val stateChangeListener: (PandaState) -> Unit
     private var speakingOverlay: View? = null
 
     init {
         stateChangeListener = { newState ->
-            // This code will run every time the PandaState changes
             updateSmallDeltaVisuals(newState)
         }
-        // Register the listener with the state manager
         pandaStateManager.addStateChangeListener(stateChangeListener)
 
     }
@@ -61,6 +64,17 @@ class VisualFeedbackManager private constructor(private val context: Context) {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: VisualFeedbackManager(context.applicationContext).also { INSTANCE = it }
             }
+        }
+    }
+
+    /**
+     * Check if the app has permission to draw overlays
+     */
+    private fun hasOverlayPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(context)
+        } else {
+            true
         }
     }
 
@@ -96,55 +110,73 @@ class VisualFeedbackManager private constructor(private val context: Context) {
     }
 
     private fun setupAudioWaveEffect() {
-        // Create and add the AudioWaveView
-        audioWaveView = AudioWaveView(context)
-        val heightInDp = 150
-        val heightInPixels = (heightInDp * context.resources.displayMetrics.density).toInt()
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT, heightInPixels,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT,
-
-        ).apply {
-            gravity = Gravity.BOTTOM
-            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-        }
-        windowManager.addView(audioWaveView, params)
-        Log.d(TAG, "Audio wave view added.")
-
-        // Link to TTSManager
-        val ttsManager = TTSManager.getInstance(context)
-        val audioSessionId = ttsManager.getAudioSessionId()
-
-        if (audioSessionId == 0) {
-            Log.e(TAG, "Failed to get valid audio session ID. Visualizer not started.")
+        // Check if we have overlay permission before attempting to add views
+        if (!hasOverlayPermission()) {
+            Log.e(TAG, "Cannot setup audio wave effect: SYSTEM_ALERT_WINDOW permission not granted")
             return
         }
 
-        ttsVisualizer = TtsVisualizer(audioSessionId) { normalizedAmplitude ->
-            mainHandler.post {
-                audioWaveView?.setRealtimeAmplitude(normalizedAmplitude)
-            }
-        }
+        try {
+            // Create and add the AudioWaveView
+            audioWaveView = AudioWaveView(context)
+            val heightInDp = 150
+            val heightInPixels = (heightInDp * context.resources.displayMetrics.density).toInt()
+            val params = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT, heightInPixels,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT,
 
-        ttsManager.utteranceListener = { isSpeaking ->
-            mainHandler.post {
-                if (isSpeaking) {
-                    audioWaveView?.setTargetAmplitude(0.2f)
-                    ttsVisualizer?.start()
-                } else {
-                    ttsVisualizer?.stop()
-                    audioWaveView?.setTargetAmplitude(0.0f)
+            ).apply {
+                gravity = Gravity.BOTTOM
+                softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            }
+            windowManager.addView(audioWaveView, params)
+            Log.d(TAG, "Audio wave view added.")
+
+            // Link to TTSManager
+            val ttsManager = TTSManager.getInstance(context)
+            val audioSessionId = ttsManager.getAudioSessionId()
+
+            if (audioSessionId == 0) {
+                Log.e(TAG, "Failed to get valid audio session ID. Visualizer not started.")
+                return
+            }
+
+            ttsVisualizer = TtsVisualizer(audioSessionId) { normalizedAmplitude ->
+                mainHandler.post {
+                    audioWaveView?.setRealtimeAmplitude(normalizedAmplitude)
                 }
             }
+
+            ttsManager.utteranceListener = { isSpeaking ->
+                mainHandler.post {
+                    if (isSpeaking) {
+                        audioWaveView?.setTargetAmplitude(0.2f)
+                        ttsVisualizer?.start()
+                    } else {
+                        ttsVisualizer?.stop()
+                        audioWaveView?.setTargetAmplitude(0.0f)
+                    }
+                }
+            }
+            Log.d(TAG, "Audio wave effect has been set up.")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting up audio wave effect", e)
+            // Clean up if something went wrong
+            audioWaveView = null
+            ttsVisualizer = null
         }
-        Log.d(TAG, "Audio wave effect has been set up.")
     }
 
     fun showSpeakingOverlay() {
         mainHandler.post {
             if (speakingOverlay != null) return@post
+
+            if (!hasOverlayPermission()) {
+                Log.e(TAG, "Cannot show speaking overlay: SYSTEM_ALERT_WINDOW permission not granted")
+                return@post
+            }
 
             speakingOverlay = View(context).apply {
                 // Reduced opacity from 80 (50%) to 40 (25%) for a more subtle overlay
@@ -164,6 +196,7 @@ class VisualFeedbackManager private constructor(private val context: Context) {
                 Log.d(TAG, "Speaking overlay added.")
             } catch (e: Exception) {
                 Log.e(TAG, "Error adding speaking overlay", e)
+                speakingOverlay = null
             }
         }
     }
@@ -176,6 +209,11 @@ class VisualFeedbackManager private constructor(private val context: Context) {
         }
 
         mainHandler.post {
+            if (!hasOverlayPermission()) {
+                Log.e(TAG, "Cannot show transcription: SYSTEM_ALERT_WINDOW permission not granted")
+                return@post
+            }
+
             transcriptionView = TextView(context).apply {
                 text = initialText
                 val glassBackground = GradientDrawable(
@@ -250,6 +288,11 @@ class VisualFeedbackManager private constructor(private val context: Context) {
                 inputBoxView?.findViewById<EditText>(R.id.overlayInputField)?.requestFocus()
                 val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.showSoftInput(inputBoxView?.findViewById(R.id.overlayInputField), InputMethodManager.SHOW_IMPLICIT)
+                return@post
+            }
+
+            if (!hasOverlayPermission()) {
+                Log.e(TAG, "Cannot show input box: SYSTEM_ALERT_WINDOW permission not granted")
                 return@post
             }
 
@@ -356,6 +399,11 @@ class VisualFeedbackManager private constructor(private val context: Context) {
         }
 
         mainHandler.post {
+            if (!hasOverlayPermission()) {
+                Log.e(TAG, "Cannot show thinking indicator: SYSTEM_ALERT_WINDOW permission not granted")
+                return@post
+            }
+
             // If a previous instance exists on window manager, try to remove it silently
             thinkingIndicatorView?.let {
                 try { if (it.isAttachedToWindow) windowManager.removeView(it) } catch (_: Exception) {}
@@ -431,6 +479,11 @@ class VisualFeedbackManager private constructor(private val context: Context) {
     fun showSmallDeltaGlow() {
         mainHandler.post {
             if (smallDeltaGlowView?.isAttachedToWindow == true) return@post
+
+            if (!hasOverlayPermission()) {
+                Log.e(TAG, "Cannot show small delta glow: SYSTEM_ALERT_WINDOW permission not granted")
+                return@post
+            }
 
             smallDeltaGlowView = SmallDeltaGlowView(context)
             val sizeInDp = 64

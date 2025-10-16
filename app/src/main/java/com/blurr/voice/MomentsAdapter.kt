@@ -51,3 +51,4 @@ class MomentsAdapter(private val taskHistory: List<TaskHistoryItem>) :
 
     override fun getItemCount(): Int = taskHistory.size
 }
+

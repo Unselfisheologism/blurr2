@@ -37,7 +37,7 @@
         android:layout_marginTop="12dp"
         android:background="@drawable/input_box_background"
         android:fontFamily="@font/oxanium"
-        android:hint="Enter your email"
+        android:hint="Enter your email [WIP]"
         android:inputType="textEmailAddress"
         android:padding="12dp"
         android:textColor="@android:color/white"

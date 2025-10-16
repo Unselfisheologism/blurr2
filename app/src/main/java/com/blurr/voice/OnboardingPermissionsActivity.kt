@@ -53,7 +53,6 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
     private val accessibilityServiceChecker = AccessibilityServiceChecker(this)
     private var hasScheduledAdvance = false
 
-    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_onboarding_stepper)
@@ -94,7 +93,6 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.Q)
     private fun setupPermissionSteps() {
         // Step 1: Accessibility Service (Special Intent)
         permissionSteps.add(
@@ -148,24 +146,23 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
         }
 
 
-        // In your setupPermissionSteps() function
-// ...
-// Step 5: Default Assistant Role (Special Intent)
-// Step 5: Default Assistant Role
-        permissionSteps.add(
-            PermissionStep(
-                titleRes = R.string.default_assistant_role_title,
-                descRes = R.string.default_assistant_role_desc,
-                iconRes = R.drawable.butler,
-                isGranted = {
-                    val rm = getSystemService(RoleManager::class.java)
-                    rm?.isRoleHeld(RoleManager.ROLE_ASSISTANT) == true
-                },
-                action = {
-                    startActivity(Intent(this, RoleRequestActivity::class.java))
-                }
+        // Step 5: Default Assistant Role (Special Intent) - Only for API 29+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            permissionSteps.add(
+                PermissionStep(
+                    titleRes = R.string.default_assistant_role_title,
+                    descRes = R.string.default_assistant_role_desc,
+                    iconRes = R.drawable.butler,
+                    isGranted = {
+                        val rm = getSystemService(RoleManager::class.java)
+                        rm?.isRoleHeld(RoleManager.ROLE_ASSISTANT) == true
+                    },
+                    action = {
+                        startActivity(Intent(this, RoleRequestActivity::class.java))
+                    }
+                )
             )
-        )
+        }
 
 // ...
         // Start the flow with the first step
@@ -195,7 +192,6 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(Color.GREEN)
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(Color.parseColor("#F44336"))
     }
-    @RequiresApi(Build.VERSION_CODES.Q)
     private fun setupLaunchers() {
         requestPermissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -223,12 +219,16 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
         requestRoleLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
                 isLaunchingRole = false           // ✅ clear here only
-                val rm = getSystemService(RoleManager::class.java)
-                val isGranted = rm?.isRoleHeld(RoleManager.ROLE_ASSISTANT) == true
-                if (isGranted) {
-                    // Role granted, automatically move to next step after a short delay
-                    Toast.makeText(this, "Default assistant role granted!", Toast.LENGTH_SHORT).show()
-                    scheduleAdvanceOnce()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val rm = getSystemService(RoleManager::class.java)
+                    val isGranted = rm?.isRoleHeld(RoleManager.ROLE_ASSISTANT) == true
+                    if (isGranted) {
+                        // Role granted, automatically move to next step after a short delay
+                        Toast.makeText(this, "Default assistant role granted!", Toast.LENGTH_SHORT).show()
+                        scheduleAdvanceOnce()
+                    } else {
+                        updateUIForStep(currentStep)
+                    }
                 } else {
                     updateUIForStep(currentStep)
                 }
@@ -249,6 +249,12 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun openAssistantPicker() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            // Fallback for older Android versions
+            openAssistantSettingsFallback()
+            return
+        }
+
         val roleManager = getSystemService(RoleManager::class.java)
 
         if (roleManager?.isRoleHeld(RoleManager.ROLE_ASSISTANT) == true) {

@@ -184,7 +184,7 @@ class LoginActivity : AppCompatActivity() {
         val actionCodeSettings = ActionCodeSettings.newBuilder()
             .setAndroidPackageName(packageName, true, null)
             .setHandleCodeInApp(true)
-            .setUrl("https://black-radius-341415.firebaseapp.com/__/auth/links")
+            .setUrl("https://black-radius-341415.firebaseapp.com/__/auth/action")
             .build()
         Firebase.auth.sendSignInLinkToEmail(email, actionCodeSettings)
             .addOnSuccessListener {
