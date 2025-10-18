@@ -10,7 +10,9 @@ import com.blurr.voice.intents.impl.DialIntent
 import com.blurr.voice.intents.impl.EmailComposeIntent
 import com.blurr.voice.intents.impl.ShareTextIntent
 import com.blurr.voice.intents.impl.ViewUrlIntent
-import com.blurr.voice.triggers.TriggerMonitoringService
+import com.google.firebase.Firebase
+import com.google.firebase.remoteconfig.remoteConfig
+import com.google.firebase.remoteconfig.remoteConfigSettings
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +40,15 @@ class MyApplication : Application(), PurchasesUpdatedListener {
     override fun onCreate() {
         super.onCreate()
         appContext = applicationContext
+
+        // Initialize Firebase Remote Config
+        val remoteConfig = Firebase.remoteConfig
+        val configSettings = remoteConfigSettings {
+            minimumFetchIntervalInSeconds = if (BuildConfig.DEBUG) 1L else 3L
+        }
+        remoteConfig.setConfigSettingsAsync(configSettings)
+        remoteConfig.setDefaultsAsync(R.xml.remote_config_defaults)
+
 
         billingClient = BillingClient.newBuilder(this)
             .setListener(this)
@@ -95,7 +106,6 @@ class MyApplication : Application(), PurchasesUpdatedListener {
 
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
         Logger.d("MyApplication", "Purchase update received")
-        // Send broadcast to MainActivity to handle the purchase update
         val intent = Intent("com.blurr.voice.PURCHASE_UPDATED")
         intent.putExtra("response_code", billingResult.responseCode)
         intent.putExtra("debug_message", billingResult.debugMessage)
