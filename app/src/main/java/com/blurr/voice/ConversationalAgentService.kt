@@ -36,6 +36,7 @@ import com.blurr.voice.utilities.addResponse
 import com.blurr.voice.utilities.getReasoningModelApiResponse
 import com.blurr.voice.data.MemoryManager
 import com.blurr.voice.utilities.FreemiumManager
+import com.blurr.voice.utilities.PandaState
 import com.blurr.voice.utilities.UserProfileManager
 import com.blurr.voice.utilities.VisualFeedbackManager
 import com.blurr.voice.v2.AgentService
@@ -134,8 +135,9 @@ class ConversationalAgentService : Service() {
         showInputBoxIfNeeded()
         visualFeedbackManager.showSmallDeltaGlow()
 
-        // Start state monitoring
+        // Start state monitoring and set initial state
         pandaStateManager.startMonitoring()
+        pandaStateManager.setState(PandaState.IDLE)
 
 
     }
@@ -171,6 +173,7 @@ class ConversationalAgentService : Service() {
         firebaseAnalytics.logEvent("text_mode_activated", null)
         
         isTextModeActive = true
+        pandaStateManager.setState(PandaState.IDLE)
         speechCoordinator.stopListening()
         speechCoordinator.stopSpeaking()
         // Optionally hide the transcription view since user is typing
@@ -226,6 +229,7 @@ class ConversationalAgentService : Service() {
         // Skip greeting and start listening immediately
         serviceScope.launch {
             Log.d("ConvAgent", "Starting immediate listening (no greeting)")
+            pandaStateManager.setState(PandaState.LISTENING)
             startImmediateListening()
         }
         return START_STICKY
@@ -267,6 +271,7 @@ class ConversationalAgentService : Service() {
             onResult = { recognizedText ->
                 if (isTextModeActive) return@startListening // Ignore results in text mode
                 Log.d("ConvAgent", "Final user transcription: $recognizedText")
+                pandaStateManager.setState(PandaState.PROCESSING)
                 visualFeedbackManager.updateTranscription(recognizedText)
                 mainHandler.postDelayed({
                     visualFeedbackManager.hideTranscription()
@@ -325,7 +330,12 @@ class ConversationalAgentService : Service() {
                 Log.d("ConvAgent", "Listening state: $listening")
                 if (listening) {
                     if (isTextModeActive) return@startListening // Ignore state changes in text mode
+                    pandaStateManager.setState(PandaState.LISTENING)
                     visualFeedbackManager.showTranscription()
+                } else {
+                    if (!isTextModeActive) {
+                        pandaStateManager.setState(PandaState.IDLE)
+                    }
                 }
             }
         )
@@ -340,6 +350,7 @@ class ConversationalAgentService : Service() {
         }
         ttsManager.setCaptionsEnabled(draw)
 
+        pandaStateManager.setState(PandaState.SPEAKING)
         speechCoordinator.speakText(text)
         Log.d("ConvAgent", "Panda said: $text")
         // --- CHANGE 4: Check if we are in text mode before starting to listen ---
@@ -355,6 +366,7 @@ class ConversationalAgentService : Service() {
             onResult = { recognizedText ->
                 if (isTextModeActive) return@startListening // Ignore errors in text mode
                 Log.d("ConvAgent", "Final user transcription: $recognizedText")
+                pandaStateManager.setState(PandaState.PROCESSING)
                 visualFeedbackManager.updateTranscription(recognizedText)
                 mainHandler.postDelayed({
                     visualFeedbackManager.hideTranscription()
@@ -413,7 +425,12 @@ class ConversationalAgentService : Service() {
                 Log.d("ConvAgent", "Listening state: $listening")
                 if (listening) {
                     if (isTextModeActive) return@startListening // Ignore errors in text mode
+                    pandaStateManager.setState(PandaState.LISTENING)
                     visualFeedbackManager.showTranscription()
+                } else {
+                    if (!isTextModeActive) {
+                        pandaStateManager.setState(PandaState.IDLE)
+                    }
                 }
             }
         )
@@ -520,6 +537,7 @@ class ConversationalAgentService : Service() {
                     gracefulShutdown("Goodbye!", "command")
                     return@launch
                 }
+                pandaStateManager.setState(PandaState.PROCESSING)
                 visualFeedbackManager.showThinkingIndicator()
                 val defaultJsonResponse = """{"Type": "Reply", "Reply": "I'm sorry, I had an issue.", "Instruction": "", "Should End": "Continue"}"""
                 val rawModelResponse = getReasoningModelApiResponse(conversationHistory) ?: defaultJsonResponse
@@ -1338,7 +1356,8 @@ class ConversationalAgentService : Service() {
         ttsManager.setCaptionsEnabled(false)
         isRunning = false
         
-        // Stop state monitoring
+        // Stop state monitoring and set final state
+        pandaStateManager.setState(PandaState.IDLE)
         pandaStateManager.stopMonitoring()
         visualFeedbackManager.hideSmallDeltaGlow()
         visualFeedbackManager.hideSpeakingOverlay() // <-- ADD THIS LINE
