@@ -129,15 +129,13 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun customizeGoogleSignInButton(button: SignInButton) {
-        // Replace the text and color inside Google's SignInButton
-        // Note: SignInButton contains a TextView as its first child
         (0 until button.childCount)
             .map { button.getChildAt(it) }
             .firstOrNull { it is TextView }
             ?.let { tv ->
                 val textView = tv as TextView
                 textView.text = "Continue with Google Login"
-                textView.setTextColor(Color.GRAY)
+                textView.setTextColor(Color.BLACK)
             }
     }
 

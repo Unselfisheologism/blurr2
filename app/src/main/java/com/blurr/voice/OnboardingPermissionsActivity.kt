@@ -234,7 +234,7 @@ class OnboardingPermissionsActivity : AppCompatActivity() {
                 }
             }
     }
-    private fun scheduleAdvanceOnce(delayMs: Long = 1000) {
+    private fun scheduleAdvanceOnce(delayMs: Long = 0) {
         if (hasScheduledAdvance) return
         hasScheduledAdvance = true
         nextButton.postDelayed({
