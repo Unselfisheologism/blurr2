@@ -20,6 +20,7 @@ playServicesBasement = "18.9.0"
 androidx-core = { module = "androidx.core:core", version.ref = "coreKtxVersion" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-ktx-v1170 = { module = "androidx.core:core-ktx", version.ref = "coreKtxVersion" }
+firebase-config = { module = "com.google.firebase:firebase-config" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
