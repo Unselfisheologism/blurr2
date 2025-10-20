@@ -61,6 +61,14 @@ class PandaStateManager private constructor(private val context: Context) {
     fun getCurrentState(): PandaState = currentState
     
     /**
+     * Manually set the Panda state (called from ConversationalAgentService)
+     */
+    fun setState(newState: PandaState) {
+        Log.d(TAG, "State manually set to: $newState")
+        updateState(newState)
+    }
+    
+    /**
      * Start monitoring service states and updating the current state
      */
     fun startMonitoring() {
@@ -72,8 +80,8 @@ class PandaStateManager private constructor(private val context: Context) {
         isMonitoring = true
         Log.d(TAG, "Starting state monitoring")
         
-        // Start periodic state checking
-        scheduleStateUpdate()
+        // Set initial state to IDLE when monitoring starts
+        setState(PandaState.IDLE)
     }
     
     /**
@@ -92,7 +100,7 @@ class PandaStateManager private constructor(private val context: Context) {
         errorClearRunnable?.let { mainHandler.removeCallbacks(it) }
         
         // Reset to idle state
-        updateState(PandaState.IDLE)
+        setState(PandaState.IDLE)
     }
     
     /**
@@ -100,91 +108,18 @@ class PandaStateManager private constructor(private val context: Context) {
      */
     fun triggerErrorState() {
         Log.d(TAG, "Error state triggered")
-        hasRecentError = true
+        setState(PandaState.ERROR)
         
-        // Clear error flag after 5 seconds
+        // Clear error state after 3 seconds and return to idle
         errorClearRunnable?.let { mainHandler.removeCallbacks(it) }
         errorClearRunnable = Runnable {
-            hasRecentError = false
-            Log.d(TAG, "Error flag cleared")
-            updateStateFromServices()
+            Log.d(TAG, "Error state cleared, returning to idle")
+            setState(PandaState.IDLE)
         }
-        mainHandler.postDelayed(errorClearRunnable!!, 5000)
-        
-        updateStateFromServices()
+        mainHandler.postDelayed(errorClearRunnable!!, 3000)
     }
     
-    /**
-     * Schedule the next state update check
-     */
-    private fun scheduleStateUpdate() {
-        if (!isMonitoring) return
-        
-        monitoringRunnable = Runnable {
-            updateStateFromServices()
-            scheduleStateUpdate() // Schedule next update
-        }
-        
-        // Check state every 200ms for responsive updates
-        mainHandler.postDelayed(monitoringRunnable!!, 200)
-    }
-    
-    /**
-     * Update the current state based on service states
-     */
-    private fun updateStateFromServices() {
-        if (!isMonitoring) return
-        
-        val newState = determineCurrentState()
-        
-        if (newState != currentState) {
-            Log.d(TAG, "State changed from $currentState to $newState")
-            updateState(newState)
-        }
-    }
-    
-    /**
-     * Determine the current state based on service conditions
-     */
-    private fun determineCurrentState(): PandaState {
-        return when {
-            // Error state takes highest priority
-            hasRecentError -> PandaState.ERROR
-            
-            // Service not running means idle
-            !ConversationalAgentService.isRunning -> PandaState.IDLE
-            
-            // Speaking state (TTS active)
-            speechCoordinator.isCurrentlySpeaking() -> PandaState.SPEAKING
-            
-            // Listening state (STT active)
-            speechCoordinator.isCurrentlyListening() -> PandaState.LISTENING
-            
-            // Processing state (thinking indicator visible)
-            isThinkingIndicatorVisible() -> PandaState.PROCESSING
-            
-            // Default to idle if service is running but no active operations
-            else -> PandaState.IDLE
-        }
-    }
-    
-    /**
-     * Check if thinking indicator is currently visible
-     * This is a proxy for determining if the app is in processing state
-     */
-    private fun isThinkingIndicatorVisible(): Boolean {
-        // We use reflection to check if the thinking indicator is visible
-        // since VisualFeedbackManager doesn't expose this state directly
-        return try {
-            val field = VisualFeedbackManager::class.java.getDeclaredField("thinkingIndicatorView")
-            field.isAccessible = true
-            val thinkingIndicatorView = field.get(visualFeedbackManager)
-            thinkingIndicatorView != null
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not check thinking indicator visibility: ${e.message}")
-            false
-        }
-    }
+
     
     /**
      * Update the current state and notify listeners
