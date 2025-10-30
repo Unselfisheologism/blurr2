@@ -44,17 +44,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         // Common build config fields - applies to all build types
-        buildConfigField("String", "GEMINI_API_KEYS", "\"$apiKeys\"")
-        buildConfigField("String", "TAVILY_API", "\"$tavilyApiKeys\"")
-        buildConfigField("String", "MEM0_API", "\"$mem0ApiKey\"")
-        buildConfigField("String", "PICOVOICE_ACCESS_KEY", "\"$picovoiceApiKey\"")
         buildConfigField("boolean", "ENABLE_DIRECT_APP_OPENING", "true")
         buildConfigField("boolean", "SPEAK_INSTRUCTIONS", "true")
-        buildConfigField("String", "GOOGLE_TTS_API_KEY", "\"$googleTtsApiKey\"")
-        buildConfigField("String", "GCLOUD_GATEWAY_PICOVOICE_KEY", "\"$googlecloudGatewayPicovoice\"")
-        buildConfigField("String", "GCLOUD_GATEWAY_URL", "\"$googlecloudGatewayURL\"")
-        buildConfigField("String", "GCLOUD_PROXY_URL", "\"$googlecloudProxyURL\"")
-        buildConfigField("String", "GCLOUD_PROXY_URL_KEY", "\"$googlecloudProxyURLKey\"")
         buildConfigField("boolean", "ENABLE_LOGGING", "true")
 
     }
