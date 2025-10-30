@@ -58,6 +58,24 @@
                     android:pathPrefix="/__/auth/links" />
             </intent-filter>
         </activity>
+
+        <!-- Add this after LoginActivity -->  
+        <activity   
+            android:name=".PuterAuthActivity"   
+            android:exported="true"   
+            android:label="Puter Authentication"   
+            android:theme="@style/Theme.Blurr"  
+            android:launchMode="singleTop">  
+            <intent-filter android:autoVerify="true">  
+                <action android:name="android.intent.action.VIEW" />  
+                <category android:name="android.intent.category.BROWSABLE" />  
+                <category android:name="android.intent.category.DEFAULT" />  
+                <data  
+                    android:scheme="com.blurr.voice"  
+                    android:host="puter-callback" />  
+             </intent-filter>  
+        </activity>
+        
         <activity android:name=".ChatActivity" android:exported="true" android:label="@string/app_name" android:theme="@style/Theme.Blurr" android:screenOrientation="portrait" />
         <activity android:name=".DialogueActivity" android:exported="false" android:label="@string/app_name" android:theme="@style/Theme.Blurr" android:windowSoftInputMode="adjustResize" android:screenOrientation="portrait" />
         <activity android:name=".SettingsActivity" android:exported="false" android:label="@string/settings" android:theme="@style/Theme.Blurr" android:screenOrientation="portrait" />

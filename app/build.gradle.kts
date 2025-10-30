@@ -30,18 +30,7 @@ android {
     namespace = "com.blurr.voice"
     compileSdk = 35
 
-    // Common API keys and configuration - extracted to avoid duplication
-    val apiKeys = localProperties.getProperty("GEMINI_API_KEYS") ?: ""
-    val tavilyApiKeys = localProperties.getProperty("TAVILY_API") ?: ""
-    val mem0ApiKey = localProperties.getProperty("MEM0_API") ?: ""
-    val picovoiceApiKey = localProperties.getProperty("PICOVOICE_ACCESS_KEY") ?: ""
-    val googleTtsApiKey = localProperties.getProperty("GOOGLE_TTS_API_KEY") ?: ""
-    val googlecloudGatewayPicovoice = localProperties.getProperty("GCLOUD_GATEWAY_PICOVOICE_KEY") ?: ""
-    val googlecloudGatewayURL = localProperties.getProperty("GCLOUD_GATEWAY_URL") ?: ""
-    val googlecloudProxyURL = localProperties.getProperty("GCLOUD_PROXY_URL") ?: ""
-    val googlecloudProxyURLKey = localProperties.getProperty("GCLOUD_PROXY_URL_KEY") ?: ""
-    val revenueCatSDK = localProperties.getProperty("REVENUE_CAT_PUBLIC_URL") ?: ""
-    val revenueCatApiKey = localProperties.getProperty("REVENUECAT_API_KEY") ?: ""
+
 
     val debugSha1 = "D0:A1:49:03:FD:B5:37:DF:B5:36:51:B1:66:AE:70:11:E2:59:08:33"
 

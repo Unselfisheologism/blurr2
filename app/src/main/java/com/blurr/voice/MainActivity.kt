@@ -38,15 +38,13 @@ import com.blurr.voice.utilities.PandaState
 import com.blurr.voice.utilities.PandaStateManager
 import com.blurr.voice.utilities.DeltaStateColorMapper
 import com.blurr.voice.views.DeltaSymbolView
-import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
-import com.google.firebase.firestore.firestore
 import com.google.firebase.remoteconfig.remoteConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.tasks.await
+import android.webkit.WebView  
+import android.webkit.WebSettings
 import java.io.File
 
 class MainActivity : BaseNavigationActivity() {
@@ -57,7 +55,6 @@ class MainActivity : BaseNavigationActivity() {
     private lateinit var userId: String
     private lateinit var permissionManager: PermissionManager
     private lateinit var wakeWordManager: WakeWordManager
-    private lateinit var auth: FirebaseAuth
     private lateinit var tasksLeftTag: View
     private lateinit var freemiumManager: FreemiumManager
     private lateinit var wakeWordHelpLink: TextView
@@ -71,6 +68,8 @@ class MainActivity : BaseNavigationActivity() {
     private lateinit var stateChangeListener: (PandaState) -> Unit
     private lateinit var proSubscriptionTag: View
     private lateinit var permissionsTag: View
+    private lateinit var puterWebView: WebView  
+    private lateinit var puterBridge: PuterWebViewBridge
     private lateinit var permissionsStatusTag: TextView
     private lateinit var tasksLeftText: TextView
     private lateinit var deltaSymbol: DeltaSymbolView
@@ -120,21 +119,20 @@ class MainActivity : BaseNavigationActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        auth = Firebase.auth
-        val currentUser = auth.currentUser
-        val profileManager = UserProfileManager(this)
-
-        if (currentUser == null || !profileManager.isProfileComplete()) {
-            startActivity(Intent(this, LoginActivity::class.java))
-            finish()
-            return
-        }
-        onboardingManager = OnboardingManager(this)
-        if (!onboardingManager.isOnboardingCompleted()) {
-            Logger.d("MainActivity", "User is logged in but onboarding not completed. Relaunching permissions stepper.")
-            startActivity(Intent(this, OnboardingPermissionsActivity::class.java))
-            finish()
-            return
+        // Check if user is authenticated with Puter  
+        if (!PuterWebViewBridge.isPuterAuthenticated(this)) {  
+            Logger.d("MainActivity", "User not authenticated with Puter, redirecting to login")  
+            startActivity(Intent(this, LoginActivity::class.java))  
+            finish()  
+            return  
+        }  
+  
+        onboardingManager = OnboardingManager(this)  
+        if (!onboardingManager.isOnboardingCompleted()) {  
+            Logger.d("MainActivity", "User is logged in but onboarding not completed. Relaunching permissions stepper.")  
+            startActivity(Intent(this, OnboardingPermissionsActivity::class.java))  
+            finish()  
+            return  
         }
 
         requestRoleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -186,12 +184,176 @@ class MainActivity : BaseNavigationActivity() {
         setupClickListeners()
         showLoading(true)
         performBillingCheck()
-        
+        // Initialize Puter WebView  
+        setupPuterWebView()
         lifecycleScope.launch {
             val videoUrl = "https://storage.googleapis.com/blurr-app-assets/wake_word_demo.mp4"
             VideoAssetManager.getVideoFile(this@MainActivity, videoUrl)
         }
+        (application as MyApplication).mainActivityReference = WeakReference(this)
+    }
 
+    private fun setupPuterWebView() {  
+        // Create WebView programmatically (hidden, 0x0 size)  
+        puterWebView = WebView(this)  
+        puterWebView.layoutParams = android.view.ViewGroup.LayoutParams(0, 0)  
+      
+        // Enable JavaScript  
+        val webSettings: WebSettings = puterWebView.settings  
+        webSettings.javaScriptEnabled = true  
+        webSettings.domStorageEnabled = true  
+        webSettings.databaseEnabled = true  
+      
+        // Create and add JavaScript bridge  
+        puterBridge = PuterWebViewBridge(this, object : PuterWebViewBridge.PuterBridgeCallback {  
+            override fun onPuterReady() {  
+                Logger.d("MainActivity", "Puter.js interface is ready")  
+                // Check if user is already signed in  
+                puterWebView.evaluateJavascript("checkAuthStatus()", null)  
+            }  
+          
+            override fun onAuthSuccess(uuid: String, username: String, emailConfirmed: Boolean) {  
+                Logger.d("MainActivity", "Puter auth success: $username")  
+                runOnUiThread {  
+                    Toast.makeText(this@MainActivity, "Signed in as $username", Toast.LENGTH_SHORT).show()  
+          
+                    // Get the token from PuterAuthActivity and inject it into WebView  
+                    val token = PuterAuthActivity.getPuterToken(this@MainActivity)  
+                    if (token != null) {  
+                        injectPuterTokenIntoWebView(token)  
+                    }  
+          
+                    updateUI()  
+                }  
+            }
+          
+            override fun onAuthError(errorMessage: String) {  
+                Logger.e("MainActivity", "Puter auth error: $errorMessage")  
+                runOnUiThread {  
+                    Toast.makeText(this@MainActivity, "Auth failed: $errorMessage", Toast.LENGTH_LONG).show()  
+                }  
+            }  
+          
+            override fun onSignedOut() {  
+                Logger.d("MainActivity", "User signed out from Puter")  
+                runOnUiThread {  
+                    updateUI()  
+                }  
+            }  
+          
+            override fun onAuthStatusChecked(isSignedIn: Boolean, uuid: String?, username: String?, emailConfirmed: Boolean) {  
+                Logger.d("MainActivity", "Puter auth status: isSignedIn=$isSignedIn")  
+                if (isSignedIn && username != null) {  
+                    runOnUiThread {  
+                        // Update UI to show signed-in state  
+                        Logger.d("MainActivity", "User already signed in: $username")  
+                    }  
+                }  
+            }  
+          
+            override fun onAIChatResponse(response: String) {  
+                Logger.d("MainActivity", "AI chat response received: ${response.take(100)}...")  
+                // Handle AI response - this will be used when integrating with agent service  
+            }  
+          
+            override fun onAIChatError(errorMessage: String) {  
+                Logger.e("MainActivity", "AI chat error: $errorMessage")  
+            }  
+          
+            override fun onImageGenerated(imageDataUrl: String) {  
+                Logger.d("MainActivity", "Image generated, data URL length: ${imageDataUrl.length}")  
+                // Handle generated image  
+            }  
+        })  
+      
+        puterWebView.addJavascriptInterface(puterBridge, "AndroidJSBridge")  
+      
+        // Load the Puter interface HTML  
+        puterWebView.loadUrl("file:///android_asset/puter_interface.html")  
+      
+        Logger.d("MainActivity", "Puter WebView initialized")  
+    }
+
+    /**  
+     * Trigger Puter authentication via Chrome Custom Tabs  
+     * This launches PuterAuthActivity which handles the OAuth flow  
+     */  
+    fun signInWithPuter() {  
+        Logger.d("MainActivity", "Launching Puter authentication via Chrome Custom Tabs")  
+        val intent = Intent(this, PuterAuthActivity::class.java)  
+        startActivity(intent)  
+    }  
+
+    /**  
+     * Inject the Puter auth token into the WebView after successful authentication  
+     * This allows the WebView to make authenticated AI API calls  
+     */  
+    fun injectPuterTokenIntoWebView(token: String) {  
+        if (!::puterWebView.isInitialized) {  
+            Logger.e("MainActivity", "Cannot inject token - WebView not initialized")  
+            return  
+        }  
+      
+        Logger.d("MainActivity", "Injecting Puter auth token into WebView")  
+      
+        // Inject the token into the WebView's JavaScript context  
+        val jsCode = """  
+            (function() {  
+                // Store the token for use by Puter.js  
+                window.puterAuthToken = '$token';  
+              
+                // If Puter.js is loaded, set the token  
+                if (typeof puter !== 'undefined' && puter.auth) {  
+                    puter.auth.setToken('$token');  
+                }  
+              
+                console.log('Puter auth token injected successfully');  
+            })();  
+        """.trimIndent()  
+      
+        puterWebView.evaluateJavascript(jsCode) { result ->  
+            Logger.d("MainActivity", "Token injection result: $result")  
+        }  
+    }
+  
+    /**  
+     * Sign out from Puter  
+     */  
+    fun signOutFromPuter() {  
+        if (::puterWebView.isInitialized) {  
+            puterWebView.evaluateJavascript("signOutFromPuter()", null)  
+        }  
+    }  
+  
+    /**  
+     * Check if user is authenticated with Puter  
+     */  
+    fun isPuterAuthenticated(): Boolean {  
+        return PuterWebViewBridge.isPuterAuthenticated(this)  
+    }
+
+    /**  
+     * Make an AI chat request using the WebView's Puter.js instance  
+     * This is called after authentication is complete  
+     */  
+    fun chatWithPuterAI(prompt: String, model: String = "gpt-5-nano") {  
+        if (!::puterWebView.isInitialized) {  
+            Logger.e("MainActivity", "Cannot chat - WebView not initialized")  
+            Toast.makeText(this, "Puter AI not ready", Toast.LENGTH_SHORT).show()  
+            return  
+        }  
+      
+        if (!PuterWebViewBridge.isPuterAuthenticated(this)) {  
+            Logger.e("MainActivity", "Cannot chat - not authenticated")  
+            Toast.makeText(this, "Please sign in with Puter first", Toast.LENGTH_SHORT).show()  
+            return  
+        }  
+      
+        Logger.d("MainActivity", "Sending chat request to Puter AI: $prompt")  
+      
+        // Call the JavaScript function in the WebView  
+        val jsCode = "chatWithAI('${prompt.replace("'", "\\'")}', '$model')"  
+        puterWebView.evaluateJavascript(jsCode, null)  
     }
 
     private fun openAssistantPickerSettings() {
@@ -235,16 +397,16 @@ class MainActivity : BaseNavigationActivity() {
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-        if (auth.currentUser == null) {
-            startActivity(Intent(this, LoginActivity::class.java))
-            finish()
-            return
-        }
-        
-        showLoading(true)
-        performBillingCheck()
+    override fun onStart() {  
+        super.onStart()  
+        if (!PuterWebViewBridge.isPuterAuthenticated(this)) {  
+            startActivity(Intent(this, LoginActivity::class.java))  
+            finish()  
+            return  
+        }  
+      
+        showLoading(true)  
+        performBillingCheck()  
     }
 
     private fun handleIntent(intent: Intent?) {
@@ -302,30 +464,32 @@ class MainActivity : BaseNavigationActivity() {
         }
     }
 
-    private fun requestLimitIncrease() {
-        val userEmail = auth.currentUser?.email
-        if (userEmail.isNullOrEmpty()) {
-            Toast.makeText(this, "Could not get your email. Please try again.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val recipient = "ayush0000ayush@gmail.com"
-        val subject = "I am facing issue in"
-        val body = "Hello,\n\nI am facing issue for my account: $userEmail\n <issue-content>.... \n\nThank you."
-
-        val intent = Intent(Intent.ACTION_SENDTO).apply {
-            data = Uri.parse("mailto:") // Only email apps should handle this
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(recipient))
-            putExtra(Intent.EXTRA_SUBJECT, subject)
-            putExtra(Intent.EXTRA_TEXT, body)
-        }
-
-        // Verify that the intent will resolve to an activity
-        if (intent.resolveActivity(packageManager) != null) {
-            startActivity(intent)
-        } else {
-            Toast.makeText(this, "No email application found.", Toast.LENGTH_SHORT).show()
-        }
+    private fun requestLimitIncrease() {  
+        // Get user email from Puter instead of Firebase  
+        val userData = PuterWebViewBridge.getPuterUserData(this)  
+        val userEmail = userData?.optString("username") ?: ""  
+      
+       if (userEmail.isEmpty()) {  
+            Toast.makeText(this, "Could not get your email. Please try again.", Toast.LENGTH_SHORT).show()  
+            return  
+        }  
+  
+        val recipient = "ayush0000ayush@gmail.com"  
+        val subject = "I am facing issue in"  
+        val body = "Hello,\n\nI am facing issue for my account: $userEmail\n <issue-content>.... \n\nThank you."  
+  
+        val intent = Intent(Intent.ACTION_SENDTO).apply {  
+            data = Uri.parse("mailto:")  
+            putExtra(Intent.EXTRA_EMAIL, arrayOf(recipient))  
+            putExtra(Intent.EXTRA_SUBJECT, subject)  
+            putExtra(Intent.EXTRA_TEXT, body)  
+        }  
+  
+        if (intent.resolveActivity(packageManager) != null) {  
+            startActivity(intent)  
+        } else {  
+            Toast.makeText(this, "No email application found.", Toast.LENGTH_SHORT).show()  
+        }  
     }
 
 
@@ -407,6 +571,11 @@ class MainActivity : BaseNavigationActivity() {
             pandaStateManager.removeStateChangeListener(stateChangeListener)
             pandaStateManager.stopMonitoring()
         }
+
+        // Clean up WebView  
+        if (::puterWebView.isInitialized) {  
+            puterWebView.destroy()  
+        } 
     }
 
     private fun showDisclaimerDialog() {
@@ -680,30 +849,32 @@ class MainActivity : BaseNavigationActivity() {
     }
 
 
-    private suspend fun updateUserToPro() {
-        val uid = Firebase.auth.currentUser?.uid
-        if (uid == null) {
-            Logger.e("MainActivity", "Cannot update user to pro: user is not authenticated.")
-            withContext(Dispatchers.Main) {
-            }
-            return
-        }
-
-        withContext(Dispatchers.IO) {
-            val db = Firebase.firestore
-            try {
-                val userDocRef = db.collection("users").document(uid)
-                userDocRef.update("plan", "pro").await()
-                Logger.d("MainActivity", "Successfully updated user $uid to 'pro' plan.")
-                withContext(Dispatchers.Main) {
-                }
-
-            } catch (e: Exception) {
-                Logger.e("MainActivity", "Error updating user to pro", e)
-                withContext(Dispatchers.Main) {
-                }
-            }
-        }
+    private suspend fun updateUserToPro() {  
+        val userData = PuterWebViewBridge.getPuterUserData(this)  
+        val uuid = userData?.optString("uuid")  
+      
+        if (uuid == null) {  
+            Logger.e("MainActivity", "Cannot update user to pro: user is not authenticated.")  
+            withContext(Dispatchers.Main) {  
+            }  
+            return  
+        }  
+  
+        withContext(Dispatchers.IO) {  
+            val db = Firebase.firestore  
+            try {  
+              val userDocRef = db.collection("users").document(uuid)  
+                userDocRef.update("plan", "pro").await()  
+                Logger.d("MainActivity", "Successfully updated user $uuid to 'pro' plan.")  
+                withContext(Dispatchers.Main) {  
+                }  
+  
+            } catch (e: Exception) {  
+                Logger.e("MainActivity", "Error updating user to pro", e)  
+                withContext(Dispatchers.Main) {  
+                }  
+            }  
+        }  
     }
 
     private fun displayDeveloperMessage() {

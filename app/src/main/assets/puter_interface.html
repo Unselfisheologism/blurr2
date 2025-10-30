@@ -1,0 +1,134 @@
+<!DOCTYPE html>  
+<html>  
+<head>  
+    <title>Puter.js Interface</title>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <script src="https://js.puter.com/v2/"></script>  
+    <style>  
+        body {  
+            margin: 0;  
+            padding: 0;  
+            background: transparent;  
+        }  
+    </style>  
+</head>  
+<body>  
+    <script>  
+        // Initialize Puter.js when the page loads  
+        console.log("Puter.js interface loaded");  
+  
+        // Authentication functions  
+        async function signInWithPuter() {  
+            try {  
+                console.log("Starting Puter sign-in...");  
+                await puter.auth.signIn();  
+                  
+                // After successful sign-in, get user info  
+                const user = await puter.auth.getUser();  
+                console.log("User signed in:", user);  
+                  
+                // Send user info back to Android  
+                if (window.AndroidJSBridge) {  
+                    window.AndroidJSBridge.onPuterAuthSuccess(JSON.stringify(user));  
+                }  
+            } catch (error) {  
+                console.error("Puter sign-in error:", error);  
+                if (window.AndroidJSBridge) {  
+                    window.AndroidJSBridge.onPuterAuthError(error.message || "Authentication failed");  
+                }  
+            }  
+        }  
+  
+        async function signOutFromPuter() {  
+            try {  
+                await puter.auth.signOut();  
+                console.log("User signed out");  
+                if (window.AndroidJSBridge) {  
+                    window.AndroidJSBridge.onPuterSignedOut();  
+                }  
+            } catch (error) {  
+                console.error("Sign out error:", error);  
+                if (window.AndroidJSBridge) {  
+                    window.AndroidJSBridge.onPuterAuthError(error.message || "Sign out failed");  
+                }  
+            }  
+        }  
+  
+        async function checkAuthStatus() {  
+            try {  
+                const isSignedIn = puter.auth.isSignedIn();  
+                console.log("Auth status:", isSignedIn);  
+                  
+                if (isSignedIn) {  
+                    const user = await puter.auth.getUser();  
+                    if (window.AndroidJSBridge) {  
+                        window.AndroidJSBridge.onAuthStatusChecked(true, JSON.stringify(user));  
+                    }  
+                } else {  
+                    if (window.AndroidJSBridge) {  
+                        window.AndroidJSBridge.onAuthStatusChecked(false, null);  
+                    }  
+                }  
+            } catch (error) {  
+                console.error("Auth status check error:", error);  
+                if (window.AndroidJSBridge) {  
+                    window.AndroidJSBridge.onPuterAuthError(error.message || "Status check failed");  
+                }  
+            }  
+        }  
+  
+        // AI functions  
+        async function chatWithAI(prompt, model = "gpt-5-nano") {  
+            try {  
+                console.log("Sending chat request:", prompt);  
+                const response = await puter.ai.chat(prompt, { model: model });  
+                console.log("AI response received:", response);  
+                  
+                // Extract the message content  
+                const messageContent = response.message?.content || response;  
+                  
+                if (window.AndroidJSBridge) {  
+                    window.AndroidJSBridge.onAIChatResponse(messageContent);  
+                }  
+                  
+                return messageContent;  
+            } catch (error) {  
+                console.error("AI chat error:", error);  
+                if (window.AndroidJSBridge) {  
+                    window.AndroidJSBridge.onAIChatError(error.message || "AI request failed");  
+                }  
+                throw error;  
+            }  
+        }  
+  
+        async function generateImage(prompt, model = "gpt-image-1", quality = "low") {  
+            try {  
+                console.log("Generating image:", prompt);  
+                const imageDataUrl = await puter.ai.txt2img(prompt, { model: model, quality: quality });  
+                console.log("Image generated");  
+                  
+                if (window.AndroidJSBridge) {  
+                    window.AndroidJSBridge.onImageGenerated(imageDataUrl);  
+                }  
+                  
+                return imageDataUrl;  
+            } catch (error) {  
+                console.error("Image generation error:", error);  
+                if (window.AndroidJSBridge) {  
+                    window.AndroidJSBridge.onAIChatError(error.message || "Image generation failed");  
+                }  
+                throw error;  
+            }  
+        }  
+  
+        // Notify Android that the interface is ready  
+        window.addEventListener('load', function() {  
+            console.log("Puter.js interface ready");  
+            if (window.AndroidJSBridge) {  
+                window.AndroidJSBridge.onPuterInterfaceReady();  
+            }  
+        });  
+    </script>  
+</body>  
+</html>
